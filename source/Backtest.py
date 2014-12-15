@@ -22,10 +22,10 @@ class Backtest:
     def simule(self, max_day=-1):
         while self.market.play_day(max_day):
             pass
+        for strategy_id in self.strategyDict:
+            plt.plot(self.market.portfolio_value(self.strategyDict[strategy_id].portfolio))
         print(self.market.portfolio_value(self.market.portfolioDict[0])[:50])
         print(self.market.portfolio_value(self.strategyDict[0].portfolio)[:50])
-        plt.plot(self.market.portfolio_value(self.strategyDict[0].portfolio))
-        plt.plot(self.market.portfolio_value(self.strategyDict[1].portfolio))
         plt.show(block=True)
 
 
