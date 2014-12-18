@@ -6,7 +6,10 @@ class Backtest:
     def __init__(self):
         self.market = Market()
         self.strategyDict = {}
-        print("Backtest instantiated")
+        print(self.__repr__())
+
+    def __repr__(self):
+        return "<Backtest>"
 
     def add_strategy(self, strategy: Strategy):
         self.strategyDict[strategy.id] = strategy
@@ -22,23 +25,27 @@ class Backtest:
     def simule(self, max_day=-1):
         while self.market.play_day(max_day):
             pass
-        for strategy_id in self.strategyDict:
-            plt.plot(self.market.portfolio_value(self.strategyDict[strategy_id].portfolio))
-        print(self.market.portfolio_value(self.market.portfolioDict[0])[:50])
-        print(self.market.portfolio_value(self.strategyDict[0].portfolio)[:50])
+        for portfolio in self.market.portfolioDict.values():
+            data = portfolio.valueHistory
+            print(data)
+            print(portfolio.orderHistoryList)
+            plt.plot(data)
         plt.show(block=True)
 
 
 class DataReader:
     def __init__(self):
         self.reader = None
-        self.csvFile = None
+        self.file = None
         self.data = None
-        print("DataReader instantiated")
+        print(self.__repr__())
+
+    def __repr__(self):
+        return "<DataReader>"
 
     def open_csv(self, path_name, delimiter=';'):
-        with open(path_name) as self.csvFile:
-            self.reader = csv.reader(self.csvFile, delimiter=delimiter)
+        with open(path_name) as self.file:
+            self.reader = csv.reader(self.file, delimiter=delimiter)
             self.data = list(self.reader)
 
     def clean_data(self, sort_type=1):
@@ -51,11 +58,15 @@ class DataReader:
 
 if __name__ == "__main__":
     theBacktest = Backtest()
-    theStrategy = Strategy(theBacktest.market, "Random Srategy")
+    randomStrategy = Strategy(theBacktest.market, "Random Srategy")
+    theBacktest.add_strategy(randomStrategy)
+
     theStrategyBis = Strategy(theBacktest.market, "Random Srategy Bis")
-    theBacktest.add_strategy(theStrategy)
     theBacktest.add_strategy(theStrategyBis)
 
-    theBacktest.add_asset_from_csv("source_propre.csv", "BTCUSD")
+    theBacktest.add_asset_from_csv("BTCUSD_propre.csv", "BTCUSD")
+    theBacktest.add_asset_from_csv("ibm_propre.csv", "IBMUSD")
+
     theBacktest.market.plot_market()
-    theBacktest.simule(10)
+
+    theBacktest.simule(4)

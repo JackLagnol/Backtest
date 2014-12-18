@@ -2,6 +2,21 @@ import random
 import matplotlib.pyplot as plt
 
 
+class Trade:
+    lastId = 0
+
+    def __init__(self, asset_id, volume, day):
+        self.asset_id = asset_id
+        self.volume = volume
+        self.day = day
+        self.id = Trade.lastId
+        Trade.lastId += 1
+        print(self.__repr__())
+
+    def __repr__(self):
+        return "<Trade of asset : {0}  and volume : {1}, the day {2}>".format(self.asset_id, self.volume, self.day)
+
+
 class Asset:
     lastId = 0
 
@@ -11,7 +26,10 @@ class Asset:
         Asset.lastId += 1
         self.data = data
         self.lenth = len(data)
-        print("Asset instantiated")
+        print(self.__repr__())
+
+    def __repr__(self):
+        return "<{0}, id : {1}>".format(self.name, self.id)
 
 
 class Portfolio:
@@ -21,9 +39,14 @@ class Portfolio:
         self.name = name
         self.id = Portfolio.lastId
         Portfolio.lastId += 1
-        self.history = [0]
-        self.assetList = []  # contient des couples idAsset et volume (carnet d'ordres)
-        print("Portfolio instantiated")
+        self.todayInQueueTrade = []
+        self.valueHistory = []
+        self.orderHistoryList = []  # de la forme [ [jour n, liste de Trade du jour n], ...]
+        self.presentAssetDict = {}
+        print(self.__repr__())
+
+    def __repr__(self):
+        return "<{0}, id : {1}>".format(self.name, self.id)
 
 
 class Strategy:
@@ -31,18 +54,29 @@ class Strategy:
 
     def __init__(self, market, name="Unknown Strategy"):
         self.name = name
+
         self.id = Strategy.lastId
         Strategy.lastId += 1
+
         self.market = market
-        self.portfolio = Portfolio(name + "'s Portfolio")
+
+        portfolio = Portfolio("Portfolio of " + name)
+        self.portfolio_id = portfolio.id
+        self.market.add_portfolio(portfolio)
+
         self.market.add_strategy(self)
-        self.market.add_portfolio(self.portfolio)
-        print("Strategy instantiated")
+        print(self.__repr__())
+
+    def __repr__(self):
+        return "<{0}, id : {1}>".format(self.name, self.id)
 
     def new_day(self):
-        self.market.buy(self.portfolio,
-                        self.market.assetDict[0],
-                        random.randint(-10, 10)*0.01)
+        number_of_asset = len(self.market.assetDict.keys())
+        i = random.randint(0, 2*number_of_asset)
+        while i < number_of_asset:
+            asset = random.randint(0, number_of_asset-1)
+            self.market.buy(self.id, asset, random.randint(-10, 10)*0.1)
+            i += 1
 
 
 class Market:
@@ -52,7 +86,10 @@ class Market:
         self.strategyDict = {}
         self.theDay = 0
         self.maximumDay = 0
-        print("Market instantiated")
+        print(self.__repr__())
+
+    def __repr__(self):
+        return "<Market, theDay : {0}>".format(self.theDay)
 
     def add_asset(self, the_asset: Asset):
         self.assetDict[the_asset.id] = the_asset
@@ -74,30 +111,46 @@ class Market:
         if max_day == -1:
             max_day = self.maximumDay
 
-        if self.theDay <= min(self.maximumDay, max_day): #peut être -1
+        if self.theDay <= min(self.maximumDay, max_day):
             for strategy_id in self.strategyDict:
                 self.strategyDict[strategy_id].new_day()
+
+            for portfolio_id in self.portfolioDict:
+                self.update_portfolio(portfolio_id)
+                print(self.portfolioDict[portfolio_id].presentAssetDict)
+
             self.theDay += 1
             return True
         else:
             return False
 
-    def portfolio_value(self, portfolio: Portfolio):
-        value = 0
-        history = []
-        for asset in portfolio.assetList:
-            # asset[0] est l'id de l'asset, asset[1] est le volume
-            for i in range(self.maximumDay):
-                value += self.assetDict[asset[0]].data[i]*asset[1]
-                history += [value]
-        return history
+    def update_portfolio(self, portfolio_id):
+        portfolio = self.portfolioDict[portfolio_id]
 
-    def buy(self, portfolio: Portfolio, asset: Asset, volume):
-        portfolio.assetList += [[asset.id, volume]]
+        actual_value = 0
+        for asset_id, volume in portfolio.presentAssetDict.items():
+            actual_value += self.assetDict[asset_id].data[self.theDay]*volume
+        portfolio.valueHistory += [actual_value]
 
-    def sell(self, portfolio: Portfolio, asset: Asset, volume):
-        portfolio.assetList += [asset.id, -volume]
+        portfolio.orderHistoryList += [[self.theDay, portfolio.todayInQueueTrade]]
+        portfolio.todayInQueueTrade = []
 
+    def buy(self, portfolio_id, asset_id, volume):
+        new_trade = Trade(asset_id, volume, self.theDay)
+        portfolio = self.portfolioDict[portfolio_id]
 
+        portfolio.todayInQueueTrade += [new_trade]
 
+        if asset_id in portfolio.presentAssetDict:
+            portfolio.presentAssetDict[asset_id] += volume
+        else:
+            portfolio.presentAssetDict[asset_id] = volume
 
+    def sell(self, portfolio_id, asset_id, volume):
+        self.buy(portfolio_id, asset_id, -volume)
+
+    def get_asset_data(self, asset_id, start=0):
+        return self.assetDict[asset_id].data[start:self.theDay+1]
+
+    def get_portfolio_order_history_list(self, portfolio_id):
+        return self.portfolioDict[portfolio_id].orderHistoryList
