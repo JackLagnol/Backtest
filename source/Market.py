@@ -25,7 +25,7 @@ class Asset:
         self.id = Asset.lastId
         Asset.lastId += 1
         self.data = data
-        self.lenth = len(data)
+        self.length = len(data)
         print(self.__repr__())
 
     def __repr__(self):
@@ -42,7 +42,7 @@ class Portfolio:
         self.todayInQueueTrade = []
         self.valueHistory = []
         self.orderHistoryList = []  # de la forme [ [jour n, liste de Trade du jour n], ...]
-        self.presentAssetDict = {}
+        self.presentAssetDict = {} #asset,id
         print(self.__repr__())
 
     def __repr__(self):
@@ -93,8 +93,8 @@ class Market:
 
     def add_asset(self, the_asset: Asset):
         self.assetDict[the_asset.id] = the_asset
-        if self.maximumDay < the_asset.lenth - 1:  # -1 car le premier jour est le jour 0
-            self.maximumDay = the_asset.lenth - 1
+        if self.maximumDay < the_asset.length - 1:  # -1 car le premier jour est le jour 0
+            self.maximumDay = the_asset.length - 1
 
     def add_portfolio(self, the_portfolio: Portfolio):
         self.portfolioDict[the_portfolio.id] = the_portfolio

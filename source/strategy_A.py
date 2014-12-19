@@ -1,5 +1,6 @@
 from source.Backtest import *
 
+#Noel
 
 class ATestStrat(Strategy):
     def __init__(self, market, name="ATest Strategy"):
