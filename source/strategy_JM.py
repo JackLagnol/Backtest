@@ -16,15 +16,15 @@ class JMTestStrat(Strategy):
 
 if __name__ == "__main__":
     theBacktest = Backtest()
-    randomStrategy = Strategy(theBacktest.market, "Random Srategy")
-    theBacktest.add_strategy(randomStrategy)
+    # randomStrategy = Strategy(theBacktest.market, "Random Srategy")
+    # theBacktest.add_strategy(randomStrategy)
 
     JMstrat = JMTestStrat(theBacktest.market)
     theBacktest.add_strategy(JMstrat)
 
     theBacktest.add_asset_from_csv("BTCUSD_propre.csv", "BTCUSD")
-    # theBacktest.add_asset_from_csv("ibm_propre.csv", "IBMUSD")
+    theBacktest.add_asset_from_csv("ibm_propre.csv", "IBMUSD")
 
     theBacktest.market.plot_market()
 
-    theBacktest.simule()
+    theBacktest.simule(300)

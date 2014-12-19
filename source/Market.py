@@ -25,7 +25,7 @@ class Asset:
         self.id = Asset.lastId
         Asset.lastId += 1
         self.data = data
-        self.lenth = len(data)
+        self.length = len(data)
         print(self.__repr__())
 
     def __repr__(self):
@@ -93,8 +93,8 @@ class Market:
 
     def add_asset(self, the_asset: Asset):
         self.assetDict[the_asset.id] = the_asset
-        if self.maximumDay < the_asset.lenth - 1:  # -1 car le premier jour est le jour 0
-            self.maximumDay = the_asset.lenth - 1
+        if self.maximumDay < the_asset.length - 1:  # -1 car le premier jour est le jour 0
+            self.maximumDay = the_asset.length - 1
 
     def add_portfolio(self, the_portfolio: Portfolio):
         self.portfolioDict[the_portfolio.id] = the_portfolio
@@ -117,7 +117,7 @@ class Market:
 
             for portfolio_id in self.portfolioDict:
                 self.update_portfolio(portfolio_id)
-                print(self.portfolioDict[portfolio_id].presentAssetDict)
+                # print(self.portfolioDict[portfolio_id].presentAssetDict)
 
             self.theDay += 1
             return True
