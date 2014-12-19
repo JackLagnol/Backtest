@@ -1,6 +1,6 @@
 from source.Backtest import *
 
-
+#testtest
 class GTestStrat(Strategy):
     def __init__(self, market, name="GTest Strategy"):
         super().__init__(market, name)
