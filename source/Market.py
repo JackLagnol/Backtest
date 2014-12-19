@@ -154,3 +154,6 @@ class Market:
 
     def get_portfolio_order_history_list(self, portfolio_id):
         return self.portfolioDict[portfolio_id].orderHistoryList
+
+    def get_portfolio_value_history(self, portfolio_id):
+        return self.portfolioDict[portfolio_id].valueHistory
