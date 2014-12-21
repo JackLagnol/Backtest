@@ -18,13 +18,13 @@ if __name__ == "__main__":
     theBacktest = Backtest()
     # randomStrategy = Strategy(theBacktest.market, "Random Srategy")
     # theBacktest.add_strategy(randomStrategy)
+    stratWithC = StrategyWithCash(theBacktest.market, "estCash", 200)
+    # JMstrat = JMTestStrat(theBacktest.market)
+    theBacktest.add_strategy(stratWithC)
 
-    JMstrat = JMTestStrat(theBacktest.market)
-    theBacktest.add_strategy(JMstrat)
-
-    theBacktest.add_asset_from_csv("BTCUSD_propre.csv", "BTCUSD")
+    # theBacktest.add_asset_from_csv("BTCUSD_propre.csv", "BTCUSD")
     theBacktest.add_asset_from_csv("ibm_propre.csv", "IBMUSD")
 
-    theBacktest.market.plot_market()
+    # theBacktest.market.plot_market()
 
-    theBacktest.simule(300)
+    theBacktest.simule(40)

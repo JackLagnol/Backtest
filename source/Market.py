@@ -49,10 +49,19 @@ class Portfolio:
         return "<{0}, id : {1}>".format(self.name, self.id)
 
 
+class PortfolioWithCash(Portfolio):
+    def __init__(self, name="Unknown PortfolioWithCash", cash=10**6):
+        super().__init__(name)
+        self.cash = cash
+
+    def get_cash(self):
+        return self.cash
+
+
 class Strategy:
     lastId = 0
 
-    def __init__(self, market, name="Unknown Strategy"):
+    def __init__(self, market, name="Unknown Strategy", cash=10**6):
         self.name = name
 
         self.id = Strategy.lastId
@@ -60,7 +69,11 @@ class Strategy:
 
         self.market = market
 
-        portfolio = Portfolio("Portfolio of " + name)
+        if type(self) is StrategyWithCash:
+            portfolio = PortfolioWithCash("Portfolio of " + name, cash)
+        else:
+            portfolio = Portfolio("Portfolio of " + name)
+
         self.portfolio_id = portfolio.id
         self.market.add_portfolio(portfolio)
 
@@ -75,8 +88,17 @@ class Strategy:
         i = random.randint(0, 2*number_of_asset)
         while i < number_of_asset:
             asset = random.randint(0, number_of_asset-1)
-            self.market.buy(self.id, asset, random.randint(-10, 10)*0.1)
+            buy_or_sell = random.randint(0,1)
+            if buy_or_sell:
+                self.market.buy(self.id, asset, random.randint(1, 10)*0.1)
+            else:
+                self.market.sell(self.id, asset, random.randint(1, 10)*0.1)
             i += 1
+
+
+class StrategyWithCash(Strategy):
+    def __init__(self, market, name="Unknown StrategyWithCash", cash=10**6):
+        super().__init__(market, name, cash)
 
 
 class Market:
@@ -136,6 +158,39 @@ class Market:
         portfolio.todayInQueueTrade = []
 
     def buy(self, portfolio_id, asset_id, volume):
+        portfolio = self.portfolioDict[portfolio_id]
+
+        if type(portfolio) is PortfolioWithCash:
+            asset_price = self.assetDict[asset_id].data[self.theDay]
+            if portfolio.cash >= asset_price*volume:
+                portfolio.cash -= asset_price*volume
+                print("bought :", asset_price*volume)
+                self.register_trade(portfolio_id, asset_id, volume)
+            else:
+                print("Not enough money to buy {0} for {1}, only {2} in cash".format(asset_id, asset_price, portfolio.cash))
+        else:
+            self.register_trade(portfolio_id, asset_id, volume)
+
+    def sell(self, portfolio_id, asset_id, volume):
+        portfolio = self.portfolioDict[portfolio_id]
+        if type(portfolio) is PortfolioWithCash:
+            asset_price = self.assetDict[asset_id].data[self.theDay]
+
+            if asset_id in portfolio.presentAssetDict.keys():
+                actual_owned_volume = portfolio.presentAssetDict[asset_id]
+            else:
+                actual_owned_volume = 0
+
+            if actual_owned_volume >= volume:
+                portfolio.cash += asset_price*volume
+                print("sell :", portfolio.cash)
+                self.register_trade(portfolio_id, asset_id, -volume)
+            else:
+                print("Not enough volume of {0} to sell {1}, only {2} owned".format(asset_id, volume, actual_owned_volume))
+        else:
+            self.register_trade(portfolio_id, asset_id, -volume)
+
+    def register_trade(self, portfolio_id, asset_id, volume):
         new_trade = Trade(asset_id, volume, self.theDay)
         portfolio = self.portfolioDict[portfolio_id]
 
@@ -145,9 +200,6 @@ class Market:
             portfolio.presentAssetDict[asset_id] += volume
         else:
             portfolio.presentAssetDict[asset_id] = volume
-
-    def sell(self, portfolio_id, asset_id, volume):
-        self.buy(portfolio_id, asset_id, -volume)
 
     def get_asset_data(self, asset_id, start=0):
         return self.assetDict[asset_id].data[start:self.theDay+1]
