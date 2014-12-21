@@ -78,9 +78,9 @@ class Strategy:
             asset = random.randint(0, number_of_asset-1)
             buy_or_sell = random.randint(0,1)
             if buy_or_sell:
-                self.market.buy(self.id, asset, random.randint(1, 10)*1)
+                self.market.open(self.id, asset, random.randint(1, 10)*1)
             else:
-                self.market.sell(self.id, asset, random.randint(1, 10)*1)
+                self.market.close(self.id, asset, random.randint(1, 10)*1)
             i += 1
 
 
@@ -140,7 +140,7 @@ class Market:
         portfolio.orderHistoryList += [[self.theDay, portfolio.todayInQueueTrade]]
         portfolio.todayInQueueTrade = []
 
-    def buy(self, portfolio_id, asset_id, volume):
+    def open(self, portfolio_id, asset_id, volume):
         portfolio = self.portfolioDict[portfolio_id]
         asset_price = self.assetDict[asset_id].data[self.theDay]
         if portfolio.cash >= asset_price*volume:
@@ -148,9 +148,9 @@ class Market:
             print("bought :", asset_price*volume, "$ of", asset_id)
             self.register_trade(portfolio_id, asset_id, volume)
         else:
-            print("Not enough money to buy {0} for {1}, only {2} in cash".format(asset_id, asset_price, portfolio.cash))
+            print("Not enough money to open {0} for {1}, only {2} in cash".format(asset_id, asset_price, portfolio.cash))
 
-    def sell(self, portfolio_id, asset_id, volume):
+    def close(self, portfolio_id, asset_id, volume):
         portfolio = self.portfolioDict[portfolio_id]
         asset_price = self.assetDict[asset_id].data[self.theDay]
 
@@ -164,7 +164,7 @@ class Market:
             print("Sold :", portfolio.cash, "$ of", asset_id)
             self.register_trade(portfolio_id, asset_id, -volume)
         else:
-            print("Not enough volume of {0} to sell {1}, only {2} owned".format(asset_id, volume, actual_owned_volume))
+            print("Not enough volume of {0} to close {1}, only {2} owned".format(asset_id, volume, actual_owned_volume))
 
     def register_trade(self, portfolio_id, asset_id, volume):
         new_trade = Trade(asset_id, volume, self.theDay)

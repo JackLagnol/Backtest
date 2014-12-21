@@ -10,9 +10,9 @@ class ATestStrat(Strategy):
             data = self.market.get_asset_data(i)
             if len(data) > 2:
                 if data[-1] > data[-2] > data[-3]:
-                    self.market.buy(self.portfolio_id, i, 0.1)
+                    self.market.open(self.portfolio_id, i, 0.1)
                 elif data[-1] < data[-2] < data[-3]:
-                    self.market.buy(self.portfolio_id, i, -0.1)
+                    self.market.open(self.portfolio_id, i, -0.1)
 
 if __name__ == "__main__":
     theBacktest = Backtest()
