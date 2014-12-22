@@ -1,9 +1,8 @@
 from source.Backtest import *
 
 
-class NothingStrategy(Strategy):
+class FirstDayBuyEverythingStrategy(Strategy):
     def __init__(self, *args, **kwargs):
-        print(kwargs)
         self.asset_id = kwargs["asset_id"]
         del kwargs["asset_id"]
         super().__init__(*args, **kwargs)
@@ -31,15 +30,20 @@ if __name__ == "__main__":
     theBacktest = Backtest()
     # randomStrategy = Strategy(theBacktest.market, "Random Srategy")
     # theBacktest.add_strategy(randomStrategy)
-    NothingStrategy(theBacktest.market, asset_id=0, cash=5000)
+    '''FirstDayBuyEverythingStrategy(theBacktest.market, asset_id=0, cash=5000)
     stratWithC = Strategy(theBacktest.market, cash=5000)
     JMstrat = JMTestStrat(theBacktest.market, cash=5000)
     theBacktest.add_strategy(stratWithC)
-    theBacktest.add_strategy(JMstrat)
+    theBacktest.add_strategy(JMstrat)'''
 
     # theBacktest.add_asset_from_csv("BTCUSD_propre.csv", "BTCUSD")
-    theBacktest.add_asset_from_csv("ibm_propre.csv", "IBMUSD")
+    theBacktest.add_asset_from_csv("uniformtest.csv", "UNIF")
+    # theBacktest.add_asset_from_csv("ibm_propre.csv", "IBMUSD")
+
+    absurdExpert = Expert(theBacktest.market)
 
     # theBacktest.market.plot_market()
 
-    theBacktest.simule(30)
+    theBacktest.simule()
+    ratio = 0
+    print(absurdExpert.description_of_prediction())
