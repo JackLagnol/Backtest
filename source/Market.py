@@ -20,8 +20,8 @@ class Trade:
 class Prediction:
     lastId = 0
 
-    def __init__(self, asset_id, evolution, final_term, expert_who_made_it, day_it_was_made):
-        self.asset_id = asset_id
+    def __init__(self, asset, evolution, final_term, expert_who_made_it, day_it_was_made):
+        self.asset = asset
         self.evolution = evolution  # can be UP, DOWN, or an evolution (ex: -250 pour le cac 40)
         self.expert = expert_who_made_it
         self.day = day_it_was_made
@@ -33,7 +33,7 @@ class Prediction:
         print(self.__repr__())
 
     def __repr__(self):
-        return "<Prediction of asset : {0}, the theDay {1}, evolution : {2}>".format(self.asset_id,
+        return "<Prediction of asset : {0}, the theDay {1}, evolution : {2}>".format(self.asset.name,
                                                                                      self.day, self.evolution)
 
 
@@ -81,7 +81,7 @@ class Expert:
     def new_day(self):
         # make a prediction
         pred = ["UP", "DOWN"]
-        prediction = Prediction(0, pred[random.randint(0, 1)], self.market.theDay + 1, self, self.market.theDay)
+        prediction = Prediction(self.market.assetDict[0], pred[random.randint(0, 1)], self.market.theDay + 1, self, self.market.theDay)
         self.market.register_prediction(prediction)
 
     def prediction_result(self, prediction):
@@ -187,8 +187,8 @@ class Market:
         for prediction in self.predictionList:
             if prediction.final_term == self.theDay:
                 print(prediction)
-                asset_before = self.assetDict[prediction.asset_id].data[prediction.day]
-                asset_today = self.assetDict[prediction.asset_id].data[self.theDay]
+                asset_before = prediction.asset.data[prediction.day]
+                asset_today = prediction.asset.data[self.theDay]
                 if prediction.evolution == "UP":
                     if asset_before < asset_today:
                         prediction.isTrue = True
