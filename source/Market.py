@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 class Trade:
     lastId = 0
 
-    def __init__(self, asset_id, volume, day):
-        self.asset_id = asset_id
+    def __init__(self, asset, volume, day):
+        self.asset = asset
         self.volume = volume
         self.day = day
         self.id = Trade.lastId
@@ -14,7 +14,7 @@ class Trade:
         print(self.__repr__())
 
     def __repr__(self):
-        return "<Trade of asset : {0}  and volume : {1}, the theDay {2}>".format(self.asset_id, self.volume, self.day)
+        return "<Trade of asset : {0}  and volume : {1}, the theDay {2}>".format(self.asset.name, self.volume, self.day)
 
 
 class Prediction:
@@ -77,28 +77,6 @@ class Expert:
         self.predictionMadeList = []
         self.market.add_expert(self)
         print(self.__repr__())
-
-    @property
-    def theDay(self):
-        """I'm the 'theday' property."""
-        return self._theDay
-
-    @theDay.setter
-    def theDay(self, value):
-        print("Simulation theDay", self._theDay)
-        for strategy_id in self.strategyDict:
-            self.strategyDict[strategy_id].new_day()
-
-        for portfolio_id in self.portfolioDict:
-            self.update_portfolio(portfolio_id)
-            # print(self.portfolioDict[portfolio_id].presentAssetDict)
-
-        self.play_prediction()
-        self._theDay = value
-
-    @theDay.deleter
-    def theDay(self):
-        del self._theDay
 
     def new_day(self):
         # make a prediction
@@ -172,6 +150,28 @@ class Market:
         self.maximumDay = 0
         print(self.__repr__())
 
+    @property
+    def theDay(self):
+        """I'm the 'theday' property."""
+        return self._theDay
+
+    @theDay.setter
+    def theDay(self, value):
+        print("Simulation theDay", self._theDay)
+        for strategy_id in self.strategyDict:
+            self.strategyDict[strategy_id].new_day()
+
+        for portfolio_id in self.portfolioDict:
+            self.update_portfolio(portfolio_id)
+            # print(self.portfolioDict[portfolio_id].presentAssetDict)
+
+        self.play_prediction()
+        self._theDay = value
+
+    @theDay.deleter
+    def theDay(self):
+        del self._theDay
+
     def __repr__(self):
         return "<Market, theDay : {0}>".format(self.theDay)
 
@@ -233,18 +233,20 @@ class Market:
 
     def open(self, portfolio_id, asset_id, volume):
         portfolio = self.portfolioDict[portfolio_id]
-        asset_price = self.assetDict[asset_id].data[self.theDay]
+        asset = self.assetDict[asset_id]
+        asset_price = asset.data[self.theDay]
         if portfolio.cash >= asset_price * volume:
             portfolio.cash -= asset_price * volume
-            print("bought :", asset_price * volume, "$ of", asset_id)
-            self.register_trade(portfolio_id, asset_id, volume)
+            print("bought :", asset_price * volume, "$ of", asset.name)
+            self.register_trade(portfolio_id, asset, volume)
         else:
             print(
-                "Not enough money to open {0} for {1}, only {2} in cash".format(asset_id, asset_price, portfolio.cash))
+                "Not enough money to open {0} for {1}, only {2} in cash".format(asset.name, asset_price, portfolio.cash))
 
     def close(self, portfolio_id, asset_id, volume):
         portfolio = self.portfolioDict[portfolio_id]
-        asset_price = self.assetDict[asset_id].data[self.theDay]
+        asset = self.assetDict[asset_id]
+        asset_price = asset.data[self.theDay]
 
         if asset_id in portfolio.presentAssetDict.keys():
             actual_owned_volume = portfolio.presentAssetDict[asset_id]
@@ -253,21 +255,21 @@ class Market:
 
         if actual_owned_volume >= volume:
             portfolio.cash += asset_price * volume
-            print("Sold :", portfolio.cash, "$ of", asset_id)
-            self.register_trade(portfolio_id, asset_id, -volume)
+            print("Sold :", portfolio.cash, "$ of", asset.name)
+            self.register_trade(portfolio_id, asset, -volume)
         else:
-            print("Not enough volume of {0} to close {1}, only {2} owned".format(asset_id, volume, actual_owned_volume))
+            print("Not enough volume of {0} to close {1}, only {2} owned".format(asset.name, volume, actual_owned_volume))
 
-    def register_trade(self, portfolio_id, asset_id, volume):
-        new_trade = Trade(asset_id, volume, self.theDay)
+    def register_trade(self, portfolio_id, asset, volume):
+        new_trade = Trade(asset, volume, self.theDay)
         portfolio = self.portfolioDict[portfolio_id]
 
         portfolio.todayInQueueTrade += [new_trade]
 
-        if asset_id in portfolio.presentAssetDict:
-            portfolio.presentAssetDict[asset_id] += volume
+        if asset.id in portfolio.presentAssetDict:
+            portfolio.presentAssetDict[asset.id] += volume
         else:
-            portfolio.presentAssetDict[asset_id] = volume
+            portfolio.presentAssetDict[asset.id] = volume
 
     def get_asset_data(self, asset_id, start=0):
         return self.assetDict[asset_id].data[start:self.theDay + 1]
