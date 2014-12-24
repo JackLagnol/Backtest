@@ -10,7 +10,7 @@ class FirstDayBuyEverythingStrategy(Strategy):
     def new_day(self):
         if self.market.theDay == 0:
             price = self.market.get_asset_data(self.asset_id)[0]
-            self.market.open(self.portfolio_id, self.asset_id, self.market.portfolioDict[self.portfolio_id].cash/price)
+            self.market.open(self.portfolio, self.asset_id, self.portfolio.cash/price)
 
 
 class JMTestStrat(Strategy):
@@ -22,9 +22,9 @@ class JMTestStrat(Strategy):
             data = self.market.get_asset_data(i)
             if len(data) > 2:
                 if data[-1] > data[-2] > data[-3]:
-                    self.market.open(self.portfolio_id, i, 0.5)
+                    self.market.open(self.portfolio, i, 0.5)
                 elif data[-1] < data[-2] < data[-3]:
-                    self.market.open(self.portfolio_id, i, -0.5)
+                    self.market.open(self.portfolio, i, -0.5)
 
 if __name__ == "__main__":
     theBacktest = Backtest()

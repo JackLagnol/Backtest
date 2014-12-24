@@ -25,7 +25,7 @@ class Backtest:
     def simule(self, max_day=-1):
         while self.market.play_day(max_day):
             pass
-        for portfolio in self.market.portfolioDict.values():
+        for portfolio in self.market.portfolioList:
             data = portfolio.valueHistory
             print(data)
             print(portfolio.orderHistoryList)

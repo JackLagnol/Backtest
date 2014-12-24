@@ -53,12 +53,9 @@ class Asset:
 
 
 class Portfolio:
-    lastId = 0
 
     def __init__(self, name, cash):
         self.name = name
-        self.id = Portfolio.lastId
-        Portfolio.lastId += 1
         self.todayInQueueTrade = []
         self.valueHistory = []
         self.orderHistoryList = []  # de la forme [ [jour n, liste de Trade du jour n], ...]
@@ -67,7 +64,7 @@ class Portfolio:
         print(self.__repr__())
 
     def __repr__(self):
-        return "<{0}, id : {1}, cash : {2}>".format(self.name, self.id, self.cash)
+        return "<{0}, cash : {1}>".format(self.name, self.cash)
 
 
 class Expert:
@@ -115,10 +112,8 @@ class Strategy:
 
         self.market = market
 
-        portfolio = Portfolio("Portfolio of " + name, cash)
-
-        self.portfolio_id = portfolio.id
-        self.market.add_portfolio(portfolio)
+        self.portfolio = Portfolio("Portfolio of " + name, cash)
+        self.market.add_portfolio(self.portfolio)
 
         self.market.add_strategy(self)
         print(self.__repr__())
@@ -130,19 +125,19 @@ class Strategy:
         number_of_asset = len(self.market.assetDict.keys())
         i = random.randint(0, 2 * number_of_asset)
         while i < number_of_asset:
-            asset = random.randint(0, number_of_asset - 1)
+            asset_id = random.randint(0, number_of_asset - 1)
             buy_or_sell = random.randint(0, 1)
             if buy_or_sell:
-                self.market.open(self.id, asset, random.randint(1, 10) * 1)
+                self.market.open(self.portfolio, asset_id, random.randint(1, 10) * 1)
             else:
-                self.market.close(self.id, asset, random.randint(1, 10) * 1)
+                self.market.close(self.portfolio, asset_id, random.randint(1, 10) * 1)
             i += 1
 
 
 class Market:
     def __init__(self):
         self.assetDict = {}
-        self.portfolioDict = {}
+        self.portfolioList = []
         self.strategyDict = {}
         self.predictionList = []
         self.expertList = []
@@ -161,9 +156,9 @@ class Market:
         for strategy_id in self.strategyDict:
             self.strategyDict[strategy_id].new_day()
 
-        for portfolio_id in self.portfolioDict:
-            self.update_portfolio(portfolio_id)
-            # print(self.portfolioDict[portfolio_id].presentAssetDict)
+        for portfolio in self.portfolioList:
+            self.update_portfolio(portfolio)
+            # print(portfolio.presentAssetDict)
 
         self.play_prediction()
         self._theDay = value
@@ -220,8 +215,7 @@ class Market:
         else:
             return False
 
-    def update_portfolio(self, portfolio_id):
-        portfolio = self.portfolioDict[portfolio_id]
+    def update_portfolio(self, portfolio):
 
         actual_value = portfolio.cash
         for asset_id, volume in portfolio.presentAssetDict.items():
@@ -231,20 +225,18 @@ class Market:
         portfolio.orderHistoryList += [[self.theDay, portfolio.todayInQueueTrade]]
         portfolio.todayInQueueTrade = []
 
-    def open(self, portfolio_id, asset_id, volume):
-        portfolio = self.portfolioDict[portfolio_id]
+    def open(self, portfolio, asset_id, volume):
         asset = self.assetDict[asset_id]
         asset_price = asset.data[self.theDay]
         if portfolio.cash >= asset_price * volume:
             portfolio.cash -= asset_price * volume
             print("bought :", asset_price * volume, "$ of", asset.name)
-            self.register_trade(portfolio_id, asset, volume)
+            self.register_trade(portfolio, asset, volume)
         else:
             print(
                 "Not enough money to open {0} for {1}, only {2} in cash".format(asset.name, asset_price, portfolio.cash))
 
-    def close(self, portfolio_id, asset_id, volume):
-        portfolio = self.portfolioDict[portfolio_id]
+    def close(self, portfolio, asset_id, volume):
         asset = self.assetDict[asset_id]
         asset_price = asset.data[self.theDay]
 
@@ -256,14 +248,12 @@ class Market:
         if actual_owned_volume >= volume:
             portfolio.cash += asset_price * volume
             print("Sold :", portfolio.cash, "$ of", asset.name)
-            self.register_trade(portfolio_id, asset, -volume)
+            self.register_trade(portfolio, asset, -volume)
         else:
             print("Not enough volume of {0} to close {1}, only {2} owned".format(asset.name, volume, actual_owned_volume))
 
-    def register_trade(self, portfolio_id, asset, volume):
+    def register_trade(self, portfolio, asset, volume):
         new_trade = Trade(asset, volume, self.theDay)
-        portfolio = self.portfolioDict[portfolio_id]
-
         portfolio.todayInQueueTrade += [new_trade]
 
         if asset.id in portfolio.presentAssetDict:
@@ -274,22 +264,22 @@ class Market:
     def get_asset_data(self, asset_id, start=0):
         return self.assetDict[asset_id].data[start:self.theDay + 1]
 
-    def get_portfolio_order_history_list(self, portfolio_id):
-        return self.portfolioDict[portfolio_id].orderHistoryList
+    def get_portfolio_order_history_list(self, portfolio):
+        return portfolio.orderHistoryList
 
-    def get_portfolio_value_history(self, portfolio_id):
-        return self.portfolioDict[portfolio_id].valueHistory
+    def get_portfolio_value_history(self, portfolio):
+        return portfolio.valueHistory
 
-    def get_portfolio_cash(self, portfolio_id):
-        return self.portfolioDict[portfolio_id].cash
+    def get_portfolio_cash(self, portfolio):
+        return portfolio.cash
 
     def add_asset(self, the_asset: Asset):
         self.assetDict[the_asset.id] = the_asset
         if self.maximumDay < the_asset.length - 1:  # -1 car le premier jour est le jour 0
             self.maximumDay = the_asset.length - 1
 
-    def add_portfolio(self, the_portfolio: Portfolio):
-        self.portfolioDict[the_portfolio.id] = the_portfolio
+    def add_portfolio(self, portfolio: Portfolio):
+        self.portfolioList.append(portfolio)
 
     def add_strategy(self, the_strategy: Strategy):
         self.strategyDict[the_strategy.id] = the_strategy
