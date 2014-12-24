@@ -1,18 +1,6 @@
 from source.Backtest import *
 
 
-class FirstDayBuyEverythingStrategy(Strategy):
-    def __init__(self, *args, **kwargs):
-        self.asset = kwargs["asset"]
-        del kwargs["asset"]
-        super().__init__(*args, **kwargs)
-
-    def new_day(self):
-        if self.market.theDay == 0:
-            price = self.market.get_asset_data(self.asset)[0]
-            self.market.open(self.portfolio, self.asset, self.portfolio.cash/price)
-
-
 class JMTestStrat(Strategy):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -27,24 +15,23 @@ class JMTestStrat(Strategy):
                     self.market.open(self.portfolio, asset, -0.5)
 
 if __name__ == "__main__":
+    # An instance of Backtest is created
     theBacktest = Backtest()
 
-    # theBacktest.add_asset_from_csv("BTCUSD_propre.csv", "BTCUSD")
-    theBacktest.add_asset_from_csv("uniformtest.csv", "UNIF")
-    theBacktest.add_asset_from_csv("ibm_propre.csv", "IBMUSD")
+    # Assets are added to the Backtest
+    DENTS = theBacktest.add_asset_from_csv("uniformtest.csv", "DENTS")
+    BTCUSD = theBacktest.add_asset_from_csv("BTCUSD_propre.csv", "BTCUSD")
+    IBM = theBacktest.add_asset_from_csv("ibm_propre.csv", "IBM")
 
-    # randomStrategy = Strategy(theBacktest.market, "Random Srategy")
-    # theBacktest.add_strategy(randomStrategy)
-    FirstDayBuyEverythingStrategy(theBacktest.market, asset=theBacktest.market.assetList[0], cash=5000)
-    stratWithC = Strategy(theBacktest.market, cash=5000)
-    JMstrat = JMTestStrat(theBacktest.market, cash=5000)
-    theBacktest.add_strategy(stratWithC)
-    theBacktest.add_strategy(JMstrat)
+    # Strategies are created
+    randomStrategy = Strategy(theBacktest.market, "Random Srategy", cash=5000)
+    JMstrat = JMTestStrat(theBacktest.market, "StupidDetector", cash=5000)
+    firstDayStrat = FirstDayBuyEverythingStrategy(theBacktest.market, "BuyTheFirstDay", asset=IBM, cash=5000)
 
+    # Experts are created
+    absurdExpert = Expert(theBacktest.market, "AbsurdExpert")
 
-    absurdExpert = Expert(theBacktest.market)
-
+    # We plot the assets used
     # theBacktest.market.plot_market()
 
     theBacktest.simule()
-    print(absurdExpert.description_of_prediction())

@@ -11,7 +11,7 @@ class Trade:
         self.day = day
         self.id = Trade.lastId
         Trade.lastId += 1
-        print(self.__repr__())
+        # print(self.__repr__())
 
     def __repr__(self):
         return "<Trade of asset : {0}  and volume : {1}, the theDay {2}>".format(self.asset.name, self.volume, self.day)
@@ -30,7 +30,7 @@ class Prediction:
 
         self.id = Prediction.lastId
         Prediction.lastId += 1
-        print(self.__repr__())
+        # print(self.__repr__())
 
     def __repr__(self):
         return "<Prediction of asset : {0}, the theDay {1}, evolution : {2}>".format(self.asset.name,
@@ -58,10 +58,11 @@ class Portfolio:
         self.orderHistoryList = []  # de la forme [ [jour n, liste de Trade du jour n], ...]
         self.presentAssetDict = {}
         self.cash = cash
+        self.initialCash = cash
         print(self.__repr__())
 
     def __repr__(self):
-        return "<{0}, cash : {1}>".format(self.name, self.cash)
+        return "<{0}, cash : {1} $>".format(self.name, self.initialCash)
 
 
 class Expert:
@@ -106,7 +107,6 @@ class Strategy:
         self.market = market
         self.portfolio = Portfolio("Portfolio of " + name, cash)
         self.market.add_portfolio(self.portfolio)
-
         self.market.add_strategy(self)
         print(self.__repr__())
 
@@ -144,7 +144,7 @@ class Market:
 
     @theDay.setter
     def theDay(self, value):
-        print("Simulation theDay", self._theDay)
+        # print("Simulation theDay", self._theDay)
         for strategy in self.strategyList:
             strategy.new_day()
 
@@ -164,16 +164,15 @@ class Market:
 
     def register_prediction(self, prediction):
         self.predictionList.append(prediction)
-        print("prediction registered")
+        # print("prediction registered")
 
     def play_prediction(self):
-        print("play prediction")
+        # print("play prediction")
         for expert in self.expertList:
             expert.new_day()
 
         for prediction in self.predictionList:
             if prediction.final_term == self.theDay:
-                print(prediction)
                 asset_before = prediction.asset.data[prediction.day]
                 asset_today = prediction.asset.data[self.theDay]
                 if prediction.evolution == "UP":
@@ -183,9 +182,9 @@ class Market:
                     if asset_before > asset_today:
                         prediction.isTrue = True
                 elif type(prediction.evolution) is (int or float):
-                    print("non codé pour le moment")
+                    print("!!! NOT YET IMPLEMENTED !!!")
                 else:
-                    print("non géré")
+                    print("!!! WRONG PREDICTION !!!")
                 prediction.expert.prediction_result(prediction)
                 self.predictionList.remove(prediction)
 
@@ -218,11 +217,11 @@ class Market:
         asset_price = asset.data[self.theDay]
         if portfolio.cash >= asset_price * volume:
             portfolio.cash -= asset_price * volume
-            print("bought :", asset_price * volume, "$ of", asset.name)
+            # print("bought :", asset_price * volume, "$ of", asset.name)
             self.register_trade(portfolio, asset, volume)
         else:
             print(
-                "Not enough money to open {0} for {1}, only {2} in cash".format(asset.name, asset_price, portfolio.cash))
+                "!!! Not enough money to open {0} for {1}, only {2:.2f} $ in cash !!!".format(asset.name, asset_price, portfolio.cash))
 
     def close(self, portfolio, asset, volume):
         asset_price = asset.data[self.theDay]
@@ -234,10 +233,10 @@ class Market:
 
         if actual_owned_volume >= volume:
             portfolio.cash += asset_price * volume
-            print("Sold :", portfolio.cash, "$ of", asset.name)
+            # print("Sold :", portfolio.cash, "$ of", asset.name)
             self.register_trade(portfolio, asset, -volume)
         else:
-            print("Not enough volume of {0} to close {1}, only {2} owned".format(asset.name, volume, actual_owned_volume))
+            print("!!! Not enough volume of {0} to close {1}, only {2} owned !!!".format(asset.name, volume, actual_owned_volume))
 
     def register_trade(self, portfolio, asset, volume):
         new_trade = Trade(asset, volume, self.theDay)
@@ -260,11 +259,11 @@ class Market:
     def get_portfolio_cash(self, portfolio):
         return portfolio.cash
 
-    def add_asset(self, the_asset: Asset):
-        self.assetList.append(the_asset)
-        print("max day", self.maximumDay, "asset length", the_asset.length)
-        if self.maximumDay > the_asset.length - 1 or self.maximumDay < 1:  # -1 car le premier jour est le jour 0
-            self.maximumDay = the_asset.length - 1
+    def add_asset(self, asset: Asset):
+        self.assetList.append(asset)
+        print("+ Asset added : {0}, number of days : {1}".format(asset.name, asset.length))
+        if self.maximumDay > asset.length - 1 or self.maximumDay < 1:  # -1 car le premier jour est le jour 0
+            self.maximumDay = asset.length - 1
 
     def add_portfolio(self, portfolio: Portfolio):
         self.portfolioList.append(portfolio)
