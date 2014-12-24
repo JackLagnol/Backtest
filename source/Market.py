@@ -103,15 +103,10 @@ class Expert:
 
 
 class Strategy:
-    lastId = 0
 
     def __init__(self, market, name="Unknown Strategy", cash=10 ** 4):
         self.name = name
-        self.id = Strategy.lastId
-        Strategy.lastId += 1
-
         self.market = market
-
         self.portfolio = Portfolio("Portfolio of " + name, cash)
         self.market.add_portfolio(self.portfolio)
 
@@ -119,7 +114,7 @@ class Strategy:
         print(self.__repr__())
 
     def __repr__(self):
-        return "<{0}, id : {1}>".format(self.name, self.id)
+        return "<{0}>".format(self.name)
 
     def new_day(self):
         number_of_asset = len(self.market.assetDict.keys())
@@ -138,7 +133,7 @@ class Market:
     def __init__(self):
         self.assetDict = {}
         self.portfolioList = []
-        self.strategyDict = {}
+        self.strategyList = []
         self.predictionList = []
         self.expertList = []
         self._theDay = 0
@@ -153,8 +148,8 @@ class Market:
     @theDay.setter
     def theDay(self, value):
         print("Simulation theDay", self._theDay)
-        for strategy_id in self.strategyDict:
-            self.strategyDict[strategy_id].new_day()
+        for strategy in self.strategyList:
+            strategy.new_day()
 
         for portfolio in self.portfolioList:
             self.update_portfolio(portfolio)
@@ -195,9 +190,7 @@ class Market:
                 else:
                     print("non géré")
                 prediction.expert.prediction_result(prediction)
-                print(self.predictionList)
                 self.predictionList.remove(prediction)
-                print(self.predictionList)
 
     def plot_market(self):
         for asset_id in self.assetDict:
@@ -209,7 +202,6 @@ class Market:
             max_day = self.maximumDay
 
         if self.theDay <= min(self.maximumDay, max_day):
-            print("coucou")
             self.theDay += 1
             return True
         else:
@@ -281,8 +273,8 @@ class Market:
     def add_portfolio(self, portfolio: Portfolio):
         self.portfolioList.append(portfolio)
 
-    def add_strategy(self, the_strategy: Strategy):
-        self.strategyDict[the_strategy.id] = the_strategy
+    def add_strategy(self, strategy: Strategy):
+        self.strategyList.append(strategy)
 
     def add_expert(self, expert):
-        self.expertList += [expert]
+        self.expertList.append(expert)

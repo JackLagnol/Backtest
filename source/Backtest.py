@@ -5,14 +5,14 @@ import csv
 class Backtest:
     def __init__(self):
         self.market = Market()
-        self.strategyDict = {}
+        self.strategyList = []
         print(self.__repr__())
 
     def __repr__(self):
         return "<Backtest>"
 
     def add_strategy(self, strategy: Strategy):
-        self.strategyDict[strategy.id] = strategy
+        self.strategyList.append(strategy)
 
     def add_asset_from_csv(self, path_name, asset_name="Unknown asset"):
         the_data_reader = DataReader()
