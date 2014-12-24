@@ -14,7 +14,7 @@ class Trade:
         print(self.__repr__())
 
     def __repr__(self):
-        return "<Trade of asset : {0}  and volume : {1}, the day {2}>".format(self.asset_id, self.volume, self.day)
+        return "<Trade of asset : {0}  and volume : {1}, the theDay {2}>".format(self.asset_id, self.volume, self.day)
 
 
 class Prediction:
@@ -33,8 +33,8 @@ class Prediction:
         print(self.__repr__())
 
     def __repr__(self):
-        return "<Prediction of asset : {0}, the day {1}, evolution : {2}>".format(self.asset_id,
-                                                                                  self.day, self.evolution)
+        return "<Prediction of asset : {0}, the theDay {1}, evolution : {2}>".format(self.asset_id,
+                                                                                     self.day, self.evolution)
 
 
 class Asset:
@@ -78,6 +78,28 @@ class Expert:
         self.market.add_expert(self)
         print(self.__repr__())
 
+    @property
+    def theDay(self):
+        """I'm the 'theday' property."""
+        return self._theDay
+
+    @theDay.setter
+    def theDay(self, value):
+        print("Simulation theDay", self._theDay)
+        for strategy_id in self.strategyDict:
+            self.strategyDict[strategy_id].new_day()
+
+        for portfolio_id in self.portfolioDict:
+            self.update_portfolio(portfolio_id)
+            # print(self.portfolioDict[portfolio_id].presentAssetDict)
+
+        self.play_prediction()
+        self._theDay = value
+
+    @theDay.deleter
+    def theDay(self):
+        del self._theDay
+
     def new_day(self):
         # make a prediction
         pred = ["UP", "DOWN"]
@@ -99,7 +121,7 @@ class Expert:
             if prediction.isTrue:
                 number_true += 1
         length = len(self.predictionMadeList)
-        return [length, number_UP, number_DOWN, number_true, number_true/length]
+        return [length, number_UP, number_DOWN, number_true, number_true / max(1, length)]
 
     def __repr__(self):
         return "<{0}>".format(self.name)
@@ -108,7 +130,7 @@ class Expert:
 class Strategy:
     lastId = 0
 
-    def __init__(self, market, name="Unknown Strategy", cash=10**4):
+    def __init__(self, market, name="Unknown Strategy", cash=10 ** 4):
         self.name = name
         self.id = Strategy.lastId
         Strategy.lastId += 1
@@ -128,14 +150,14 @@ class Strategy:
 
     def new_day(self):
         number_of_asset = len(self.market.assetDict.keys())
-        i = random.randint(0, 2*number_of_asset)
+        i = random.randint(0, 2 * number_of_asset)
         while i < number_of_asset:
-            asset = random.randint(0, number_of_asset-1)
-            buy_or_sell = random.randint(0,1)
+            asset = random.randint(0, number_of_asset - 1)
+            buy_or_sell = random.randint(0, 1)
             if buy_or_sell:
-                self.market.open(self.id, asset, random.randint(1, 10)*1)
+                self.market.open(self.id, asset, random.randint(1, 10) * 1)
             else:
-                self.market.close(self.id, asset, random.randint(1, 10)*1)
+                self.market.close(self.id, asset, random.randint(1, 10) * 1)
             i += 1
 
 
@@ -146,7 +168,7 @@ class Market:
         self.strategyDict = {}
         self.predictionList = []
         self.expertList = []
-        self.theDay = 0
+        self._theDay = 0
         self.maximumDay = 0
         print(self.__repr__())
 
@@ -158,7 +180,7 @@ class Market:
         print("prediction registered")
 
     def play_prediction(self):
-        print("play prediction", self.predictionList)
+        print("play prediction")
         for expert in self.expertList:
             expert.new_day()
 
@@ -192,16 +214,7 @@ class Market:
             max_day = self.maximumDay
 
         if self.theDay <= min(self.maximumDay, max_day):
-            print("Simulation day", self.theDay)
-            for strategy_id in self.strategyDict:
-                self.strategyDict[strategy_id].new_day()
-
-            for portfolio_id in self.portfolioDict:
-                self.update_portfolio(portfolio_id)
-                # print(self.portfolioDict[portfolio_id].presentAssetDict)
-
-            self.play_prediction()
-
+            print("coucou")
             self.theDay += 1
             return True
         else:
@@ -212,7 +225,7 @@ class Market:
 
         actual_value = portfolio.cash
         for asset_id, volume in portfolio.presentAssetDict.items():
-            actual_value += self.assetDict[asset_id].data[self.theDay]*volume
+            actual_value += self.assetDict[asset_id].data[self.theDay] * volume
         portfolio.valueHistory += [actual_value]
 
         portfolio.orderHistoryList += [[self.theDay, portfolio.todayInQueueTrade]]
@@ -221,12 +234,13 @@ class Market:
     def open(self, portfolio_id, asset_id, volume):
         portfolio = self.portfolioDict[portfolio_id]
         asset_price = self.assetDict[asset_id].data[self.theDay]
-        if portfolio.cash >= asset_price*volume:
-            portfolio.cash -= asset_price*volume
-            print("bought :", asset_price*volume, "$ of", asset_id)
+        if portfolio.cash >= asset_price * volume:
+            portfolio.cash -= asset_price * volume
+            print("bought :", asset_price * volume, "$ of", asset_id)
             self.register_trade(portfolio_id, asset_id, volume)
         else:
-            print("Not enough money to open {0} for {1}, only {2} in cash".format(asset_id, asset_price, portfolio.cash))
+            print(
+                "Not enough money to open {0} for {1}, only {2} in cash".format(asset_id, asset_price, portfolio.cash))
 
     def close(self, portfolio_id, asset_id, volume):
         portfolio = self.portfolioDict[portfolio_id]
@@ -238,7 +252,7 @@ class Market:
             actual_owned_volume = 0
 
         if actual_owned_volume >= volume:
-            portfolio.cash += asset_price*volume
+            portfolio.cash += asset_price * volume
             print("Sold :", portfolio.cash, "$ of", asset_id)
             self.register_trade(portfolio_id, asset_id, -volume)
         else:
@@ -256,7 +270,7 @@ class Market:
             portfolio.presentAssetDict[asset_id] = volume
 
     def get_asset_data(self, asset_id, start=0):
-        return self.assetDict[asset_id].data[start:self.theDay+1]
+        return self.assetDict[asset_id].data[start:self.theDay + 1]
 
     def get_portfolio_order_history_list(self, portfolio_id):
         return self.portfolioDict[portfolio_id].orderHistoryList

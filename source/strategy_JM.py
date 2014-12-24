@@ -30,7 +30,7 @@ if __name__ == "__main__":
     theBacktest = Backtest()
     # randomStrategy = Strategy(theBacktest.market, "Random Srategy")
     # theBacktest.add_strategy(randomStrategy)
-    '''FirstDayBuyEverythingStrategy(theBacktest.market, asset_id=0, cash=5000)
+    ''' FirstDayBuyEverythingStrategy(theBacktest.market, asset_id=0, cash=5000)
     stratWithC = Strategy(theBacktest.market, cash=5000)
     JMstrat = JMTestStrat(theBacktest.market, cash=5000)
     theBacktest.add_strategy(stratWithC)
@@ -44,6 +44,5 @@ if __name__ == "__main__":
 
     # theBacktest.market.plot_market()
 
-    theBacktest.simule()
-    ratio = 0
+    theBacktest.simule(10)
     print(absurdExpert.description_of_prediction())
