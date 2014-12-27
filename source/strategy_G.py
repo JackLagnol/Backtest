@@ -1,6 +1,6 @@
 from source.Backtest import *
 from source.Strategy_Analyzers import *
-import statistics
+
 
 
 class JMTestStrat(Strategy):
@@ -36,24 +36,6 @@ class GTestStrat(Strategy):
         if self.market.theDay == 0:
             self.market.long(self.portfolio, asset1, volume1)
             self.market.short(self.portfolio, asset2, volume2)
-        # if self.market.theDay == self.market.maximumDay:
-        #     self.market.short(self.portfolio, asset1, volume1)
-        #     #self.market.long(self.portfolio, asset2, volume2)
-
-
-    # def getReturns(self):
-    #     c = []
-    #     n = len(self.portfolio.presentAssetDict)
-    #     for asset in self.portfolio.presentAssetDict:
-    #         data = asset.data()
-    #         self.daily_returns.getReturns(data)
-    #         c = c + [self.daily_returns.returns]
-    #     for j in range(len(self.daily_returns.returns)):
-    #         self.daily_returns.returns[j] = 0
-    #     for j in range(len(c[0])):
-    #         for i in range(len(c)):
-    #             self.daily_returns.returns[j] += c[i][j]/n
-
 
 
 
