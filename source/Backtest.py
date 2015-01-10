@@ -1,5 +1,5 @@
 from source.Market import *
-from source.commonStratgy import  *
+from source.commonStratgy import *
 import csv
 
 
@@ -11,14 +11,22 @@ class Backtest:
     def __repr__(self):
         return "<Backtest>"
 
-    def add_asset_from_csv(self, path_name, asset_name="Unknown asset"):
+    def add_asset_from_csv(self, path_name, sort_type, delimiter=";", asset_name="Unknown asset"):
         the_data_reader = DataReader()
-        the_data_reader.open_csv(path_name)
-        the_data_reader.clean_data()
+        the_data_reader.open_csv(path_name, delimiter)
+        the_data_reader.clean_data(sort_type)
 
-        asset = Asset(asset_name, the_data_reader.data)
-        self.market.add_asset(asset)
-        return asset
+        the_asset = Asset(asset_name, the_data_reader.data)
+        self.market.register_asset(the_asset)
+        return the_asset
+
+    """ Not necessary for the moment (see also in DataReader, sort type = time
+    def add_time_from_csv(self, path_name, sort_type=0): #G ; get actual time
+        data_reader = DataReader()
+        data_reader.open_csv(path_name)
+        data_reader.clean_data(sort_type)
+        self.market.add_time(data_reader.data)
+    """
 
     def simule(self, max_day=-1):
         while self.market.play_day(max_day):
@@ -30,11 +38,18 @@ class Backtest:
         for portfolio in self.market.portfolioList:
             data = portfolio.valueHistory
             result = 100*(portfolio.valueHistory[-1]-portfolio.initialCash)/portfolio.initialCash
-            print("{0} result : {1:.2f} %, cash : {2:.2f} $, assets : {3}".format(portfolio.name, result, portfolio.cash, portfolio.presentAssetDict))
+            print("{0} result : {1:.2f} %, cash : {2:.2f} $, "
+                  "assets : {3}".format(portfolio.name, result, portfolio.cash, portfolio.presentAssetDict))
             plt.plot(data)
-        print("-----------------------------------------------------")
+
+        # a line is printed if both expertList and portfolioList are not empty
+        if len(self.market.portfolioList)*len(self.market.expertList) > 0:
+            print("-----------------------------------------------------")
+
         for expert in self.market.expertList:
-            print("Prediction of {0} : number of prediction {1}, UP : {2}, DOWN : {3}, Good : {4}, Ratio : {5:.3f}".format(expert.name, *expert.description_of_prediction()))
+            print("Prediction of {0} : number of prediction {1}, "
+                  "UP : {2}, DOWN : {3}, Good : {4}, "
+                  "Ratio : {5:.3f}".format(expert.name, *expert.description_of_prediction()))
         print("-----------------------------------------------------")
         print("######           ENDS OF THE RESULTS           ######")
         plt.show(block=True)
@@ -45,19 +60,45 @@ class DataReader:
         self.reader = None
         self.file = None
         self.data = None
-        print(self.__repr__())
+        # print(self.__repr__())
 
     def __repr__(self):
         return "<DataReader>"
 
-    def open_csv(self, path_name, delimiter=';'):
+    def open_csv(self, path_name, delimiter):
         with open(path_name) as self.file:
             self.reader = csv.reader(self.file, delimiter=delimiter)
             self.data = list(self.reader)
 
-    def clean_data(self, sort_type=1):
-        if sort_type == 1:
+    def clean_data(self, sort_type):
+        if sort_type == "propre":
+            temp_data = []
+            for row in self.data:
+                temp_data += [float(row[1])]
+            self.data = temp_data
+
+        elif sort_type == "yahoo":  # G : get adjusted close data from csv (date, open, high, low, close, adjclose)
+            temp_data = []
+            self.data = self.data[1:]
+            # reverse the order of the data (the oldest become the last ones)
+            for i in range(len(self.data)):
+                temp_data += [self.data[-i-1]]
+
+            self.data = temp_data
+            temp_data = []
+            for row in self.data:
+                temp_data += [float(row[6])]
+            self.data = temp_data
+
+        """ Not necessary for the moment (see also in Backtest)
+        elif sort_type == "time":  # time for yahoo finance
+            c = []
+            self.data = self.data[1:]
+            for i in range(len(self.data)):
+                c += [self.data[-i-1]]
+            self.data = c
             c = []
             for row in self.data:
-                c += [float(row[1])]
+                c += [row[0]]
             self.data = c
+        """
