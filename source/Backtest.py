@@ -35,25 +35,27 @@ class Backtest:
             pass
         elapsed_time = clock() - beginning_time
         print("")
-        print("######        RESULTS OF THE SIMULATION        ######")
-        print("Duration : {0} days were simulated, in {1:.4f}ms".format(self.market.theDay, elapsed_time*1000))
-        print("-----------------------------------------------------")
+        print("######                RESULTS OF THE SIMULATION                ######")
+        print("Duration : {0} days were simulated, in {1:.0f} ms".format(self.market.theDay, elapsed_time*1000))
+        print("---------------------------------------------------------------------")
         for portfolio in self.market.portfolioList:
             data = portfolio.valueHistory
             result = 100*(portfolio.valueHistory[-1]-portfolio.initialCash)/portfolio.initialCash
             print("{0} result : {1:.2f} %, cash : {2:.2f} $, "
                   "assets : {3}".format(portfolio.name, result, portfolio.cash, portfolio.presentAssetDict))
             print("\t", portfolio.results_description(string_mode=True))
-            plt.plot(data)
+            plt.plot(data, label=portfolio.name)
 
         # a line is printed if both expertList and portfolioList are not empty
         if len(self.market.portfolioList)*len(self.market.expertList) > 0:
-            print("-----------------------------------------------------")
+            print("---------------------------------------------------------------------")
 
         for expert in self.market.expertList:
             print(expert.results_description(string_mode=True))
-        print("-----------------------------------------------------")
-        print("######           ENDS OF THE RESULTS           ######")
+        print("---------------------------------------------------------------------")
+        print("######                   ENDS OF THE RESULTS                   ######")
+        if len(self.market.portfolioList) > 0:
+            plt.legend(loc=2)
         plt.show(block=True)
 
 

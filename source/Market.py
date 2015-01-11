@@ -211,13 +211,13 @@ class Portfolio:
         total_number_of_positions = len(self.openPositionList) + len(self.closePositionList)
         number_of_open_positions = len(self.openPositionList)
         number_of_good_positions = len([pos for pos in self.closePositionList if pos.gain >= 0])
-        number_of_bad_positions = len([pos for pos in self.closePositionList if pos.gain < 0])
+        ratio = number_of_good_positions / max(total_number_of_positions, 1)
         the_list = [total_number_of_positions, number_of_open_positions,
-                    number_of_good_positions, number_of_bad_positions]
+                    number_of_good_positions, ratio]
         if not string_mode:
             return the_list
         else:
-            return "{0} positions ({1} still open), in the closed ones: {2} good, {3} bad".format(*the_list)
+            return "{0} positions ({1} still open), in the closed ones: {2} good, ratio: {3:.3f}".format(*the_list)
 
 
 class Expert:
@@ -274,9 +274,8 @@ class Expert:
         if not string_mode:
             return the_list
         else:
-            return "Prediction of {0} : number of prediction {1}, UP : {2}, DOWN : {3}, Good : {4}, " \
+            return "Prediction of {0} : number of prediction {1} ({2} UP,{3} DOWN), {4} good, " \
                    "Ratio : {5:.3f}".format(self.name, *the_list)
-
 
     def __repr__(self):
         return "<{0}>".format(self.name)
@@ -317,7 +316,7 @@ class Strategy:
             asset = self.market.assetList[random.randint(0, number_of_asset - 1)]
             should_i_buy = random.randint(0, 1)
             if should_i_buy:
-                self.market.open(self.portfolio, asset, random.randint(1, 10) * 1, "LONG")
+                self.market.open(self.portfolio, asset, random.randint(1, 10), "LONG")
             else:
                 length = len(self.portfolio.openPositionList)
                 if length > 0:
@@ -475,8 +474,8 @@ class Market:
                 portfolio.presentAssetDict[asset] = owned_volume
         else:
             print("!!! Not enough money to open {0} of {1} "
-                  "for {2}, only {3:.2f} $ in cash !!!".format(volume, asset.name, asset_price * volume,
-                                                               portfolio.cash))
+                  "for {2}, {3} has only {4:.2f} $ in cash !!!".format(volume, asset.name, asset_price * volume,
+                                                                       portfolio.name, portfolio.cash))
 
     def close(self, position: Position):
         """ Called by Strategy to close a position, and manage the cash """
