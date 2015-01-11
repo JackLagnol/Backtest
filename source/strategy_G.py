@@ -23,7 +23,7 @@ class GTestStrat(Strategy):
         for i in range(self.market.maximumDay):
             self.daily_returns += [0]
         for i in range(self.market.maximumDay):
-            for position in self.portfolio.presentPositionList:
+            for position in self.portfolio.openPositionList:
                 # # if self.market.time[i] == position.openTrade.day:
                 #     position.get_returns()
                 #     for j in range(len(position.returns.returns)):

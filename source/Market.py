@@ -43,7 +43,7 @@ class Position:
 
     Is registered into the portfolio when created: Portfolio.register_position()
 
-    Must be updated by the market (to keep updated value_history)
+    Must be updated by the market (to keep updated value_history, and be closed properly)
 
     Constructor : Position(the asset traded,
                            the volume bought (long) or sold (short),
@@ -51,10 +51,13 @@ class Position:
                            the type of position (True for LONG, False for SHORT),
                            the portfolio where it will be registered and where the cash will be send when closed)
 
-    long: (boolean) True for long, False for short
-    closed: (boolean) True if closed (False initially)
     openTrade: (Trade) the opening trade
     closeTrade: (Trade) the closing trade (None initially)
+
+    long: (boolean) True for long, False for short
+    closed: (boolean) True if closed (False initially)
+
+    gain: (float) the gain realized by the position (>0 for a SHORT if final_price < first_price)
     value_history: (list) the historical values of the position (volume*price stored each day)
     portfolio: (Portfolio) the portfolio where it is registered and where the cash will be send when closed
     """
@@ -62,8 +65,11 @@ class Position:
     def __init__(self, asset, volume, day, long, portfolio):
         self.openTrade = Trade(asset, volume, day)
         self.closeTrade = None
+
         self.long = long
         self.closed = False
+
+        self.gain = None
         self.valueHistory = []
         self.portfolio = portfolio
 
@@ -73,10 +79,18 @@ class Position:
         # print(self.__repr__())
 
     def __repr__(self):
-        return "<Long: {0}, asset {1}, volume {2}, " \
-               "opened the {3}, closed: {4}>".format(self.long, self.openTrade.asset,
-                                                     self.openTrade.volume, self.openTrade.day,
-                                                     self.closed)
+        if not self.closed:
+            current_price = self.openTrade.asset.data[self.portfolio.market.theDay]
+            opening_price = self.openTrade.asset.data[self.openTrade.day]
+            gain = (current_price - opening_price) * self.openTrade.volume
+            return "<Long: {0}, sill open, asset {1}, volume {2}, " \
+                   "opened the {3}, actual gain: {4}$>".format(self.long, self.openTrade.asset.name,
+                                                               self.openTrade.volume, self.openTrade.day, gain)
+        else:
+            return "<Long: {0}, closed, asset {1}, volume {2}, " \
+                   "opened the {3}, closed the {4}, gain: {5}$>".format(self.long, self.openTrade.asset.name,
+                                                                        self.openTrade.volume, self.openTrade.day,
+                                                                        self.closeTrade.day, self.gain)
 
     def get_returns(self):
         returns = get_returns(self.valueHistory)
@@ -156,25 +170,31 @@ class Portfolio:
     Is registered in the market.
 
     Constructor : Portfolio(the name of the asset,
-                            the initial cash owned)
+                            the initial cash owned,
+                            the market where it is operating)
 
     valueHistory: (list of int) updated at the end of each day within the function market.update_portfolio,
         that store the value of the portfolio day after day, converting the value of every asset owned in cash
     presentAssetDict: (dict) that store the asset actually owned, update directly when a position is register
-    presentPositionList: (list of Position) position hold by the portfolio (opened or closed)
+    presentPositionList: (list of Position) position (still open) hold by the portfolio
+    pastPositionList: (list of Position) position closed (opened or closed), *ORDERED BY THE CLOSING DAY*
 
     cash: (float) used to buy (and sell) assets
     initialCash: (float) the cash available when created
+    market: (Market) the market where it is operating
     """
 
     def __init__(self, name, cash, market):
         self.name = name
         self.valueHistory = []
         self.presentAssetDict = {}
-        self.presentPositionList = []
+        self.openPositionList = []
+        self.closePositionList = []
 
         self.cash = cash
         self.initialCash = cash
+
+        self.market = market
         # the portfolio is registered in the market
         market.register_portfolio(self)
 
@@ -184,8 +204,20 @@ class Portfolio:
         return "<{0}, cash : {1}$>".format(self.name, self.initialCash)
 
     def register_position(self, position):
-        print("Position registered: {}".format(position))
-        self.presentPositionList.append(position)
+        # print("Position registered: {}".format(position))
+        self.openPositionList.append(position)
+
+    def results_description(self, string_mode=False):
+        total_number_of_positions = len(self.openPositionList) + len(self.closePositionList)
+        number_of_open_positions = len(self.openPositionList)
+        number_of_good_positions = len([pos for pos in self.closePositionList if pos.gain >= 0])
+        number_of_bad_positions = len([pos for pos in self.closePositionList if pos.gain < 0])
+        the_list = [total_number_of_positions, number_of_open_positions,
+                    number_of_good_positions, number_of_bad_positions]
+        if not string_mode:
+            return the_list
+        else:
+            return "{0} positions ({1} still open), in the closed ones: {2} good, {3} bad".format(*the_list)
 
 
 class Expert:
@@ -226,8 +258,8 @@ class Expert:
         """" Called by the market to inform the result of a passed prediction """
         self.predictionMadeList.append(prediction)
 
-    def description_of_prediction(self):
-        """" Called by anyone that wants to get the results of the expert """
+    def results_description(self, string_mode=False):
+        length = len(self.predictionMadeList)
         number_up = 0
         number_down = 0
         number_true = 0
@@ -238,8 +270,13 @@ class Expert:
                 number_down += 1
             if prediction.isTrue:
                 number_true += 1
-        length = len(self.predictionMadeList)
-        return [length, number_up, number_down, number_true, number_true / max(1, length)]
+        the_list = [length, number_up, number_down, number_true, number_true / max(1, length)]
+        if not string_mode:
+            return the_list
+        else:
+            return "Prediction of {0} : number of prediction {1}, UP : {2}, DOWN : {3}, Good : {4}, " \
+                   "Ratio : {5:.3f}".format(self.name, *the_list)
+
 
     def __repr__(self):
         return "<{0}>".format(self.name)
@@ -282,9 +319,9 @@ class Strategy:
             if should_i_buy:
                 self.market.open(self.portfolio, asset, random.randint(1, 10) * 1, "LONG")
             else:
-                length = len(self.portfolio.presentPositionList)
+                length = len(self.portfolio.openPositionList)
                 if length > 0:
-                    self.market.close(self.portfolio.presentPositionList[random.randint(0, length - 1)])
+                    self.market.close(self.portfolio.openPositionList[random.randint(0, length - 1)])
             i += 1
 
 
@@ -398,8 +435,10 @@ class Market:
         portfolio.valueHistory.append(actual_value)
 
         # update position history value of the positions held by the portfolio
-        for position in portfolio.presentPositionList:
-            if (not position.closed) or (position.closed and position.closeTrade.day == self.theDay):
+        for position in portfolio.openPositionList:
+            position.valueHistory.append(position.openTrade.asset.data[self.theDay] * position.openTrade.volume)
+        for position in portfolio.closePositionList:
+            if position.closeTrade.day == self.theDay:
                 position.valueHistory.append(position.openTrade.asset.data[self.theDay] * position.openTrade.volume)
 
     def open(self, portfolio, asset, volume, type_of_position):
@@ -441,30 +480,46 @@ class Market:
 
     def close(self, position: Position):
         """ Called by Strategy to close a position, and manage the cash """
-        current_asset_price = position.openTrade.asset.data[self.theDay]
-        open_trade = position.openTrade
+        # NB valueHistory is not yet updated !
+        # If the position is already closed, the order is canceled
+        if position.closed:
+            print("!!! POSITION ALREADY CLOSED !!!")
+            return False
 
-        position.closeTrade = Trade(open_trade.asset, open_trade.volume, self.theDay)
-        position.closed = True
+        # Else we execute the order
+        # Useful variables
+        open_trade = position.openTrade
+        current_price = position.openTrade.asset.data[self.theDay]
+        opening_price = open_trade.asset.data[open_trade.day]
+
+        # gain for a LONG (difference between opening price and closing price X volume)
+        gain = (current_price - opening_price) * open_trade.volume
+        # to update the value of the portfolio.presentAssetDict: sold_volume is >0 for LONG, <0 for SHORT
+        sold_volume = open_trade.volume
 
         if position.long:
-            sold_volume = open_trade.volume
-            gain = current_asset_price * open_trade.volume
-            print("Long sold : {0}$ of {1} by {2}".format(position.portfolio.cash, open_trade.asset.name,
-                                                          position.portfolio.name))
+            # print("Long sold : {0}$ of {1} by {2}".format(position.portfolio.cash, open_trade.asset.name,
+            #                                               position.portfolio.name))
+            # update the cash of the portfolio for a LONG
+            position.portfolio.cash += gain + opening_price*open_trade.volume
         else:
-            sold_volume = -open_trade.volume
-            opening_asset_price = open_trade.asset.data[open_trade.day]
+            sold_volume = -sold_volume
+            gain = -gain
             # TODO SHORT closing
             # !! the next line is a problematic one !! what do we gain when closing a short ?
-            gain = (opening_asset_price - current_asset_price) * open_trade.volume
-            print("Long sold : {0}$ of {1}".format(position.portfolio.cash, open_trade.asset.name))
+            # update the cash of the portfolio for a SHORT
+            position.portfolio.cash += gain + opening_price*open_trade.volume
+            print("Short sold : {0}$ of {1} by {2}".format(position.portfolio.cash, open_trade.asset.name,
+                                                           position.portfolio.name))
 
-        # update the cash of the portfolio
-        position.portfolio.cash += gain
-        # update the value of the portfolio.presentAssetDict
-        # sold_volume is >0 for SHORT, <0 for LONG
+        # update the variables of the position
+        position.closeTrade = Trade(open_trade.asset, open_trade.volume, self.theDay)
+        position.closed = True
+        position.gain = gain
+        # update the value of the portfolio: presentAssetDict, openPositionList and closePositionList
         position.portfolio.presentAssetDict[open_trade.asset] -= sold_volume
+        position.portfolio.closePositionList.append(position)
+        position.portfolio.openPositionList.remove(position)
 
     def register_asset(self, asset: Asset):
         """ Register a asset in self.assetList and update the value of self.maximumDay """
