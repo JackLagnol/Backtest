@@ -29,34 +29,57 @@ class Backtest:
         self.market.add_time(data_reader.data)
     """
 
-    def simule(self, max_day=-1):
+    def simule(self, string_mode=True, **kwargs):
+        """ Called to simulate a market from the day 0 (or first_day included if given in the parameters)
+        to the last day (or the last_day included given in the parameters) """
+
         beginning_time = clock()  # for time execution measurement
-        while self.market.play_day(max_day):
+        if "last_day" in kwargs:
+            last_day = min(self.market.maximumDay, kwargs["last_day"])
+        else:
+            last_day = self.market.maximumDay
+
+        if "first_day" in kwargs:
+            first_day = min(last_day, kwargs["first_day"])
+        else:
+            first_day = 0
+        self.market._theDay = first_day
+        print("first day :", first_day, "and last day :", last_day)
+        while self.market.play_day(last_day):
             pass
         elapsed_time = clock() - beginning_time
-        print("")
-        print("######                RESULTS OF THE SIMULATION                ######")
-        print("Duration : {0} days were simulated, in {1:.0f} ms".format(self.market.theDay, elapsed_time*1000))
-        print("---------------------------------------------------------------------")
-        for portfolio in self.market.portfolioList:
-            data = portfolio.valueHistory
-            result = 100*(portfolio.valueHistory[-1]-portfolio.initialCash)/portfolio.initialCash
-            print("{0} result : {1:.2f} %, cash : {2:.2f} $, "
-                  "assets : {3}".format(portfolio.name, result, portfolio.cash, portfolio.presentAssetDict))
-            print("\t", portfolio.results_description(string_mode=True))
-            plt.plot(data, label=portfolio.name)
-
-        # a line is printed if both expertList and portfolioList are not empty
-        if len(self.market.portfolioList)*len(self.market.expertList) > 0:
+        if string_mode:
+            print("")
+            print("######                RESULTS OF THE SIMULATION                ######")
+            print("Duration : {0} days were simulated, in {1:.0f} ms".format(last_day + 1 - first_day,
+                                                                             elapsed_time*1000))
             print("---------------------------------------------------------------------")
+            for portfolio in self.market.portfolioList:
+                data = portfolio.valueHistory
+                result = 100*(portfolio.valueHistory[-1]-portfolio.initialCash)/portfolio.initialCash
+                print("{0} result : {1:.2f} %, cash : {2:.2f} $, "
+                      "assets : {3}".format(portfolio.name, result, portfolio.cash, portfolio.presentAssetDict))
+                print("\t", portfolio.results_description(string_mode=True))
+                plt.plot(data, label=portfolio.name)
 
-        for expert in self.market.expertList:
-            print(expert.results_description(string_mode=True))
-        print("---------------------------------------------------------------------")
-        print("######                   ENDS OF THE RESULTS                   ######")
-        if len(self.market.portfolioList) > 0:
-            plt.legend(loc=2)
-        plt.show(block=True)
+            # a line is printed if both expertList and portfolioList are not empty
+            if len(self.market.portfolioList)*len(self.market.expertList) > 0:
+                print("---------------------------------------------------------------------")
+
+            for expert in self.market.expertList:
+                print(expert.results_description(string_mode=True))
+            print("---------------------------------------------------------------------")
+            print("######                   ENDS OF THE RESULTS                   ######")
+            if len(self.market.portfolioList) > 0:
+                plt.legend(loc=2)
+            plt.show(block=True)
+
+        # the market is cleared for another new simulation
+        self.market.strategyList.clear()
+        self.market.portfolioList.clear()
+        self.market.predictionList.clear()
+        self.market.expertList.clear()
+        self.market._theDay = 0
 
 
 class DataReader:

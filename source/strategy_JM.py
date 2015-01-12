@@ -1,4 +1,7 @@
 from source.Backtest import *
+from mpl_toolkits.mplot3d import Axes3D
+from scipy import interpolate
+import numpy as np
 
 
 class JMTendanceStrat(Strategy):
@@ -24,10 +27,10 @@ class JMTestStrat(Strategy):
         the_asset = self.market.assetList[0]
         if self.market.theDay == 0:
             self.market.open(self.portfolio, the_asset, 1, "LONG")
-        if self.market.theDay == 2:
+        if self.market.theDay == 1:
             self.market.close(self.portfolio.openPositionList[0])
-            self.market.open(self.portfolio, the_asset, 3, "LONG")
-        if self.market.theDay == 4:
+            self.market.open(self.portfolio, the_asset, 1, "LONG")
+        if self.market.theDay == 5:
             self.market.close(self.portfolio.openPositionList[0])
 
 
@@ -98,7 +101,7 @@ class JMMobileExpert(Expert):
         elif self.market.theDay >= self.longMedian - 1:
             self.initialised = True
             data = self.market.get_asset_data(self.asset)
-            print("data sent", data, self.market.theDay)
+            # print("data sent", data, self.market.theDay)
             short_sum = 0
             long_sum = 0
             for i in range(self.longMedian):
@@ -124,6 +127,41 @@ class JMMobileExpert(Expert):
         plt.legend(loc=2)
         plt.show(block=True)
 
+    def __repr__(self):
+        return "<{0}, long: {1}, short: {2}>".format(self.name, self.longMedian, self.shortMedian)
+
+
+def test_the_mobile_expert(number_of_line, number_of_column, print_time=True):
+    beginning_time = clock()  # for time execution measurement
+    matrix_of_results = np.zeros((number_of_line, number_of_column))
+    for i in range(number_of_line):
+        print(i, (clock() - beginning_time), "s")
+        for j in range(number_of_column):
+            if j > i:
+                JMMobile = JMMobileExpert(theBacktest.market, "MobileExpert", longMedian=j+1, shortMedian=i+1)
+                theBacktest.simule(first_day=0, last_day=1000, string_mode=False)
+                matrix_of_results[i, j] = JMMobile.results_description()[4]
+            else:
+                matrix_of_results[i, j] = 0.5
+    if print_time:
+        print((clock() - beginning_time), "s")
+    return matrix_of_results
+
+
+def plot_the_mobile_expert(number_of_line, number_of_column):
+    X = np.arange(1, number_of_line + 1)
+    Y = np.arange(1, number_of_column + 1)
+    X, Y = np.meshgrid(X, Y)
+    Z = matrix_of_results
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=plt.cm.RdYlGn, linewidth=0, antialiased=True)
+    # ax.scatter(X, Y, Z)
+    # surf1 = ax.plot_surface(X, Y, -Z + 1, rstride=1, cstride=1, cmap=plt.cm.RdYlBu, linewidth=0, antialiased=True)
+    ax.set_zlim(0, 1)
+    fig.colorbar(surf, shrink=0.7, aspect=10)
+    plt.show()
+
 
 if __name__ == "__main__":
     # An instance of Backtest is created
@@ -134,7 +172,6 @@ if __name__ == "__main__":
     # STUP = theBacktest.add_asset_from_csv("Data/stupidtest.csv", "propre", ";", "STUP")
     # BTCUSD = theBacktest.add_asset_from_csv("Data/BTCUSD_propre.csv", "propre", ";", "BTCUSD")
     # IBM = theBacktest.add_asset_from_csv("Data/ibm_propre.csv", "propre", ";", "IBM")
-
     # GS = theBacktest.add_asset_from_csv("Data/GS_yahoo.csv", "yahoo", ",", "GS")
     IGE = theBacktest.add_asset_from_csv("Data/IGE_yahoo.csv", "yahoo", ",", "IGE")
     # SPY = theBacktest.add_asset_from_csv("Data/SPY_yahoo.csv", "yahoo", ",", "SPY")
@@ -142,20 +179,25 @@ if __name__ == "__main__":
     # Strategies are created
     # randomStrategy = Strategy(theBacktest.market, "Random Srategy", cash=5000)
     # JMstrat = JMTendanceStrat(theBacktest.market, "StupidDetector", cash=15000)
-    # firstDayStrat = FirstDayBuyEverythingStrategy(theBacktest.market, "BuyTheFirstDay", asset=IGE, cash=15000)
+    firstDayStrat = FirstDayBuyEverythingStrategy(theBacktest.market, "BuyTheFirstDay", asset=IGE, cash=15000)
     # JMstratTest = JMTestStrat(theBacktest.market, "TestStrat", cash=5000)
 
     # Experts are created
     # absurdExpert = Expert(theBacktest.market, "AbsurdExpert")
     # TendanceExpert = JMTendanceExpert(theBacktest.market, "TendanceExpert")
-    MobileExpert = JMMobileExpert(theBacktest.market, "MobileExpert", longMedian=20, shortMedian=10)
+    # MobileExpert = JMMobileExpert(theBacktest.market, "MobileExpert", longMedian=20, shortMedian=10)
+
+    # beginning_time = clock()  # for time execution measurement
+    # number_of_line = 50
+    # number_of_column = 50
+    # matrix_of_results = test_the_mobile_expert(number_of_line, number_of_column)
+    # plot_the_mobile_expert(number_of_line, number_of_column)
 
     # We plot the assets used
     # theBacktest.market.plot_market()
 
-    theBacktest.simule(200)
-
-    MobileExpert.plot_medians()
+    theBacktest.simule(first_day=50, last_day=100, string_mode=True)
+    # MobileExpert.plot_medians()
 
     # print("open:", JMstratTest.portfolio.openPositionList)
     # print(JMstratTest.portfolio.valueHistory)
@@ -167,3 +209,35 @@ if __name__ == "__main__":
     # print(l)
     # print([-rt for rt in l])
     # print(l*(-1)) # do not work
+
+
+    ############################################
+    # beginning_time = clock()  # for time execution measurement
+    # liste_of_line = []
+    # empty_column = [0]*number_of_column
+    # for i in range(number_of_line):
+    #     liste_of_line.append([0]*number_of_column)
+    # # liste_of_line = [empty_column]*number_of_line
+    # matrice = np.zeros((number_of_line, number_of_column))
+    # for i in range(number_of_line):
+    #     for j in range(number_of_column):
+    #         if j > i:
+    #             # print(i, j)
+    #             liste_of_line[i][j] = JMMobileExpert(theBacktest.market,
+    #                                                  "MobileExpert", longMedian=j+1, shortMedian=i+1)
+    #
+    # # for liste in liste_of_line:
+    # #     print(liste)
+    # theBacktest.simule(500, string_mode=False)
+    # for i in range(number_of_line):
+    #     for j in range(number_of_column):
+    #         if j > i:
+    #             matrice[i, j] = liste_of_line[i][j].results_description()[4]  # line i, column j
+    #         else:
+    #             matrice[i, j] = 0
+    # # # print(matrice)
+    #
+    # print((clock() - beginning_time), "s")
+    # plt.imshow(matrice, cmap=plt.cm.RdYlGn, interpolation="nearest")
+    # plt.colorbar()
+    # plt.show()

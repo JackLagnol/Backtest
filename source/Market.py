@@ -239,7 +239,7 @@ class Expert:
         self.predictionMadeList = []
         # the expert is registered in the market
         self.market.register_expert(self)
-        print(self.__repr__())
+        # print(self.__repr__())
 
     def new_day(self):
         """ Called each day by the market to ask the expert to make its predictions
@@ -388,16 +388,14 @@ class Market:
     def __repr__(self):
         return "<Market, theDay : {0}>".format(self.theDay)
 
-    def play_day(self, max_day=-1):
+    def play_day(self, last_day):
         """ Manage the simulation of a day
 
         if theDay <= min(maximumDay, max day set in backtest), add 1 to theDay and return True, else False
         the property mechanism calls the useful functions used to manage the simulation
         """
-        if max_day == -1:
-            max_day = self.maximumDay
 
-        if self.theDay <= min(self.maximumDay, max_day):
+        if self.theDay <= last_day:
             self.theDay += 1
             return True
         else:

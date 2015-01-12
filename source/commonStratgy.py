@@ -11,11 +11,13 @@ class FirstDayBuyEverythingStrategy(Strategy):
     def __init__(self, *args, **kwargs):
         self.asset = kwargs["asset"]
         del kwargs["asset"]
+        self.alreadyBought = False
         super().__init__(*args, **kwargs)
 
     def new_day(self):
-        if self.market.theDay == 0:
-            price = self.market.get_asset_data(self.asset)[0]
+        if not self.alreadyBought:
+            self.alreadyBought = True
+            price = self.market.get_asset_data(self.asset)[self.market.theDay]
             self.market.open(self.portfolio, self.asset, self.portfolio.cash / price, "LONG")
 
 
