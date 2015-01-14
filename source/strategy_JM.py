@@ -55,16 +55,24 @@ class JMTendanceExpert(Expert):
 
 class JMMobileExpert(Expert):
     def __init__(self, *args, **kwargs):
-
+        # TODO end the implementation of "predictionTerm" in the test_the_ME
         temp_kwargs = kwargs.copy()
         del kwargs["longMedian"]
         del kwargs["shortMedian"]
         if "asset" in kwargs:
             del kwargs["asset"]
+
+        if "predictionTerm" in kwargs:
+            del kwargs["predictionTerm"]
+            self.predictionTerm = temp_kwargs["predictionTerm"]
+        else:
+            self.predictionTerm = temp_kwargs["shortMedian"]
+
         super().__init__(*args, **kwargs)
 
         self.longMedian = temp_kwargs["longMedian"]
         self.shortMedian = temp_kwargs["shortMedian"]
+
         self.pastShortSum = []
         self.pastLongSum = []
         self.initialised = False
@@ -82,17 +90,17 @@ class JMMobileExpert(Expert):
             short_sum = 0
             long_sum = 0
             for i in range(self.longMedian):
-                long_sum += data[-i-1]  # -1 because i start at 0
+                long_sum += data[-i - 1]  # -1 because i start at 0
             long_sum /= self.longMedian
             for i in range(self.shortMedian):
-                short_sum += data[-i-1]  # -1 because i start at 0
+                short_sum += data[-i - 1]  # -1 because i start at 0
             short_sum /= self.shortMedian
 
             if short_sum > long_sum and self.pastLongSum[-1] > self.pastShortSum[-1]:
-                Prediction(self.asset, pred[0], self.market.theDay + self.shortMedian,
+                Prediction(self.asset, pred[0], self.market.theDay + self.predictionTerm,
                            self, self.market.theDay, self.market)
             elif short_sum < long_sum and self.pastLongSum[-1] < self.pastShortSum[-1]:
-                Prediction(self.asset, pred[1], self.market.theDay + self.shortMedian,
+                Prediction(self.asset, pred[1], self.market.theDay + self.predictionTerm,
                            self, self.market.theDay, self.market)
 
             self.pastLongSum.append(long_sum)
@@ -107,10 +115,10 @@ class JMMobileExpert(Expert):
             long_sum = 0
             for i in range(self.longMedian):
                 # print(-i-1)
-                long_sum += data[-i-1]  # -1 because i start at 0
+                long_sum += data[-i - 1]  # -1 because i start at 0
             long_sum /= self.longMedian
             for i in range(self.shortMedian):
-                short_sum += data[-i-1]  # -1 because i start at 0
+                short_sum += data[-i - 1]  # -1 because i start at 0
             short_sum /= self.shortMedian
             self.pastLongSum.append(long_sum)
             self.pastShortSum.append(short_sum)
@@ -133,13 +141,16 @@ class JMMobileExpert(Expert):
 
 
 def test_the_mobile_expert(number_of_line, number_of_column, first_day, last_day, print_time=True):
+    """ Return the matrix where M(i, j) is the expected value of an MobileExpert which parameters are
+    longMedain = j+1, shortMedia = i+1, simulated from first_day to last_day """
+
     beginning_time = clock()  # for time execution measurement
     matrix_of_results = np.zeros((number_of_line, number_of_column))
-    for i in range(number_of_line):
+    for i in range(number_of_line):  # short median
         # print(i, (clock() - beginning_time), "s")
-        for j in range(number_of_column):
+        for j in range(number_of_column):  # long median
             if j > i:
-                JMMobile = JMMobileExpert(theBacktest.market, "MobileExpert", longMedian=j+1, shortMedian=i+1)
+                JMMobile = JMMobileExpert(theBacktest.market, "MobileExpert", longMedian=j + 1, shortMedian=i + 1)
                 theBacktest.simule(first_day=first_day, last_day=last_day, string_mode=False)
                 matrix_of_results[i, j] = JMMobile.results_description()[4]
             else:
@@ -149,27 +160,28 @@ def test_the_mobile_expert(number_of_line, number_of_column, first_day, last_day
     return matrix_of_results
 
 
-def super_test_the_mobile_expert(number_of_line, number_of_column, windows_duration, length_of_the_asset, print_time=True, **kwargs):
-
+def super_test_the_mobile_expert(number_of_line, number_of_column, windows_duration, first_day, last_day,
+                                 print_time=True, **kwargs):
+    """  last_day is excluded """
     if "windows_offset" in kwargs:
         windows_offset = kwargs["windows_offset"]
     else:
         windows_offset = windows_duration
 
-    list_of_results = []
+    length_of_the_asset = last_day - first_day
+    last_day = windows_duration + first_day
 
     number_of_windows = int((length_of_the_asset - windows_duration) / windows_offset)
 
-    first_day = 0
-    last_day = windows_duration
+    list_of_results = []
 
     beginning_time = clock()  # for time execution measurement
-    for i in range(number_of_windows+1):
-        list_of_results.append(test_the_mobile_expert(number_of_line, number_of_column, first_day, last_day, print_time=False))
+    for i in range(number_of_windows + 1):
+        list_of_results.append(
+            test_the_mobile_expert(number_of_line, number_of_column, first_day, last_day, print_time=False))
         print(first_day, last_day, (clock() - beginning_time), "s")
         first_day += windows_offset
         last_day += windows_offset
-
 
     return list_of_results
 
@@ -185,7 +197,8 @@ def plot_the_mobile_expert(number_of_line, number_of_column, matrix_of_results, 
         fig = plt.figure()
 
         ax = fig.add_subplot(111, projection='3d')  # fig.gca(projection='3d')
-        surf = ax.plot_surface(X, Y, matrix_of_results, rstride=1, cstride=1, cmap=plt.cm.RdYlGn, linewidth=0, antialiased=True)
+        surf = ax.plot_surface(X, Y, matrix_of_results, rstride=1, cstride=1, cmap=plt.cm.RdYlGn, linewidth=0,
+                               antialiased=True)
 
         # # to add a new part in the graph NB localisation problem needs to be solved
         # ax2 = fig.add_subplot(211, projection='3d')
@@ -197,7 +210,7 @@ def plot_the_mobile_expert(number_of_line, number_of_column, matrix_of_results, 
         ax.set_zlim(0, 1)
         fig.colorbar(surf, shrink=0.7, aspect=10)
 
-        alpha_axis  = plt.axes([0.25, 0.15, 0.65, 0.03])
+        alpha_axis = plt.axes([0.25, 0.15, 0.65, 0.03])
         alpha_slider = Slider(alpha_axis, 'Amp', 0, 1, valinit=.5)
         alpha_slider.on_changed(lambda val: update(ax, val))
 
@@ -222,7 +235,6 @@ def plot_the_mobile_expert(number_of_line, number_of_column, matrix_of_results, 
 
 
 def plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_type="3D", interpolation="nearest"):
-
     # the min and max of the list of matrix are searched to set the scale
     list_of_max = []
     list_of_min = []
@@ -233,12 +245,11 @@ def plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_
     min_of_results = min(list_of_min)
 
     # use for the slider
-    val_max = 1/len(list_of_results)
+    val_max = 1 / len(list_of_results)
 
     if plot_type == "2D":
-
         def update(ax, val):
-            index = min(int(val/val_max), len(list_of_results)-1)
+            index = min(int(val / val_max), len(list_of_results) - 1)
             # print(val, index)
             ax.cla()
             image = ax.imshow(list_of_results[index], cmap=plt.cm.RdYlGn, interpolation=interpolation)
@@ -260,7 +271,7 @@ def plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_
     if plot_type == "2D+":
 
         def update(ax, val):
-            index = min(int(val/val_max), len(list_of_results)-1)
+            index = min(int(val / val_max), len(list_of_results) - 1)
             # print(val, index)
             ax.cla()
             image1 = ax.imshow(list_of_results[index], cmap=plt.cm.RdYlGn, interpolation=interpolation)
@@ -278,17 +289,17 @@ def plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_
                 # image.set_clim([min_of_results, max_of_results])
                 colorbar2.update_bruteforce(image)
             if label == "EV  - VAR":
-                image = ax2.imshow(esperance-variance, cmap=plt.cm.YlGn, interpolation=interpolation)
+                image = ax2.imshow(esperance - variance, cmap=plt.cm.YlGn, interpolation=interpolation)
                 # image.set_clim([min_of_results, max_of_results])
                 colorbar2.update_bruteforce(image)
             if label == "EV + VAR":
-                image = ax2.imshow(esperance+variance, cmap=plt.cm.YlGn, interpolation=interpolation)
+                image = ax2.imshow(esperance + variance, cmap=plt.cm.YlGn, interpolation=interpolation)
                 # image.set_clim([min_of_results, max_of_results])
                 colorbar2.update_bruteforce(image)
             plt.draw()
 
 
-        esperance = sum(list_of_results)/len(list_of_results)
+        esperance = sum(list_of_results) / len(list_of_results)
 
         variance = np.zeros((number_of_line, number_of_column))
         for i in range(number_of_line):
@@ -297,9 +308,7 @@ def plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_
                     list_of_elem = []
                     for matrix in list_of_results:
                         list_of_elem.append(matrix[i, j])
-                    print(list_of_elem)
                     variance[i, j] = statistics.stdev(list_of_elem)
-        print(variance*100)
 
         fig = plt.figure()
         ax1 = fig.add_subplot(121)
@@ -328,10 +337,8 @@ def plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_
         plt.show(block=True)
 
     if plot_type == "3D":
-
         def update(ax, val):
-            index = min(int(val/val_max), len(list_of_results)-1)
-            print(val, index)
+            index = min(int(val / val_max), len(list_of_results) - 1)
             ax.cla()
             surf = ax.plot_surface(X, Y, list_of_results[index], rstride=1, cstride=1,
                                    cmap=plt.cm.RdYlGn, linewidth=0, antialiased=True)
@@ -348,9 +355,8 @@ def plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_
         ax1 = fig.add_subplot(111, projection='3d')
         fig.subplots_adjust(left=0.25, bottom=0.25)
 
-
         surf = ax1.plot_surface(X, Y, list_of_results[0], rstride=1, cstride=1,
-                               cmap=plt.cm.RdYlGn, linewidth=0, antialiased=True)
+                                cmap=plt.cm.RdYlGn, linewidth=0, antialiased=True)
         ax1.set_zlim(min_of_results, max_of_results)
         fig.colorbar(surf, shrink=0.7, aspect=10)
 
@@ -364,7 +370,7 @@ def plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_
     if plot_type == "3D+":
 
         def update(ax, val):
-            index = min(int(val/val_max), len(list_of_results)-1)
+            index = min(int(val / val_max), len(list_of_results) - 1)
             # print(val, index)
             ax.cla()
             surf = ax.plot_surface(X, Y, list_of_results[index], rstride=1, cstride=1,
@@ -384,11 +390,11 @@ def plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_
                 # image.set_clim([min_of_results, max_of_results])
                 colorbar2.update_bruteforce(image)
             if label == "EV  - VAR":
-                image = ax2.imshow(esperance-variance, cmap=plt.cm.YlGn, interpolation=interpolation)
+                image = ax2.imshow(esperance - variance, cmap=plt.cm.YlGn, interpolation=interpolation)
                 # image.set_clim([min_of_results, max_of_results])
                 colorbar2.update_bruteforce(image)
             if label == "EV + VAR":
-                image = ax2.imshow(esperance+variance, cmap=plt.cm.YlGn, interpolation=interpolation)
+                image = ax2.imshow(esperance + variance, cmap=plt.cm.YlGn, interpolation=interpolation)
                 # image.set_clim([min_of_results, max_of_results])
                 colorbar2.update_bruteforce(image)
             plt.draw()
@@ -401,7 +407,7 @@ def plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_
         ax1 = fig.add_subplot(121, projection='3d')
         ax2 = fig.add_subplot(122)
 
-        esperance = sum(list_of_results)/len(list_of_results)
+        esperance = sum(list_of_results) / len(list_of_results)
 
         variance = np.zeros((number_of_line, number_of_column))
         for i in range(number_of_line):
@@ -410,11 +416,7 @@ def plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_
                     list_of_elem = []
                     for matrix in list_of_results:
                         list_of_elem.append(matrix[i, j])
-                    print(list_of_elem)
                     variance[i, j] = statistics.stdev(list_of_elem)
-        print(variance*100)
-
-
 
         surf = ax1.plot_surface(X, Y, list_of_results[0], rstride=1, cstride=1,
                                 cmap=plt.cm.RdYlGn, linewidth=0.2, antialiased=True)
@@ -448,10 +450,10 @@ if __name__ == "__main__":
     # STUP = theBacktest.add_asset_from_csv("Data/stupidtest.csv", "propre", ";", "STUP")
     # BTCUSD = theBacktest.add_asset_from_csv("Data/BTCUSD_propre.csv", "propre", ";", "BTCUSD")
     # IBM = theBacktest.add_asset_from_csv("Data/ibm_propre.csv", "propre", ";", "IBM")
-    # GS = theBacktest.add_asset_from_csv("Data/GS_yahoo.csv", "yahoo", ",", "GS")
+    GS = theBacktest.add_asset_from_csv("Data/GS_yahoo.csv", "yahoo", ",", "GS")
     # IGE = theBacktest.add_asset_from_csv("Data/IGE_yahoo.csv", "yahoo", ",", "IGE")
     # SPY = theBacktest.add_asset_from_csv("Data/SPY_yahoo.csv", "yahoo", ",", "SPY")
-    IBMyahoo = theBacktest.add_asset_from_csv("Data/IBM_1970_2010_yahoo.csv", "yahoo", ",", "IBM")
+    # IBMyahoo = theBacktest.add_asset_from_csv("Data/IBM_1970_2010_yahoo.csv", "yahoo", ",", "IBM")
 
     # Strategies are created
     # randomStrategy = Strategy(theBacktest.market, "Random Srategy", cash=5000)
@@ -464,70 +466,26 @@ if __name__ == "__main__":
     # TendanceExpert = JMTendanceExpert(theBacktest.market, "TendanceExpert")
     # MobileExpert = JMMobileExpert(theBacktest.market, "MobileExpert", longMedian=20, shortMedian=10)
 
-    beginning_time = clock()  # for time execution measurement
-    number_of_line = 5  # short median
-    number_of_column = 5  # long median
+    # beginning_time = clock()  # for time execution measurement
+    number_of_line = 20  # short median
+    number_of_column = 20  # long median
+
 
     # matrix_of_results = test_the_mobile_expert(number_of_line, number_of_column, 0, 1000)
 
-    windows_duration = 1000
-    length_of_the_asset = 5000
+    windows_duration = 500
+    first_day = 0
+    last_day = 1000
     list_of_results = super_test_the_mobile_expert(number_of_line, number_of_column,
-                                                   windows_duration, length_of_the_asset,
-                                                   windows_offset=1000, print_time=True)
+                                                   windows_duration, first_day, last_day,
+                                                   windows_offset=250, print_time=True)
 
     # for i in range(len(list_of_results)):
-    #     plot_the_mobile_expert(number_of_line, number_of_column, list_of_results[i], plot_type="3D")
-    print("len list", len(list_of_results))
-    plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_type="2D+", interpolation="nearest")
-
-
+    # plot_the_mobile_expert(number_of_line, number_of_column, list_of_results[i], plot_type="3D")
+    plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_type="3D+", interpolation="nearest")
 
     # We plot the assets used
     # theBacktest.market.plot_market()
 
     # theBacktest.simule(first_day=50, last_day=100, string_mode=True)
     # MobileExpert.plot_medians()
-
-    # print("open:", JMstratTest.portfolio.openPositionList)
-    # print(JMstratTest.portfolio.valueHistory)
-    # print(JMstratTest.portfolio.closePositionList[0].valueHistory)
-    # print("close", JMstratTest.portfolio.closePositionList)
-
-    # # Useful syntax
-    # l = [0, 1, 2, -3]
-    # print(l)
-    # print([-rt for rt in l])
-    # print(l*(-1)) # do not work
-
-
-    ############################################
-    # beginning_time = clock()  # for time execution measurement
-    # liste_of_line = []
-    # empty_column = [0]*number_of_column
-    # for i in range(number_of_line):
-    #     liste_of_line.append([0]*number_of_column)
-    # # liste_of_line = [empty_column]*number_of_line
-    # matrice = np.zeros((number_of_line, number_of_column))
-    # for i in range(number_of_line):
-    #     for j in range(number_of_column):
-    #         if j > i:
-    #             # print(i, j)
-    #             liste_of_line[i][j] = JMMobileExpert(theBacktest.market,
-    #                                                  "MobileExpert", longMedian=j+1, shortMedian=i+1)
-    #
-    # # for liste in liste_of_line:
-    # #     print(liste)
-    # theBacktest.simule(500, string_mode=False)
-    # for i in range(number_of_line):
-    #     for j in range(number_of_column):
-    #         if j > i:
-    #             matrice[i, j] = liste_of_line[i][j].results_description()[4]  # line i, column j
-    #         else:
-    #             matrice[i, j] = 0
-    # # # print(matrice)
-    #
-    # print((clock() - beginning_time), "s")
-    # plt.imshow(matrice, cmap=plt.cm.RdYlGn, interpolation="nearest")
-    # plt.colorbar()
-    # plt.show()
