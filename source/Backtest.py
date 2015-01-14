@@ -44,7 +44,7 @@ class Backtest:
         else:
             first_day = 0
         self.market._theDay = first_day
-        print("first day :", first_day, "and last day :", last_day)
+        # print("first day :", first_day, "and last day :", last_day)
         while self.market.play_day(last_day):
             pass
         elapsed_time = clock() - beginning_time

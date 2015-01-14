@@ -2,6 +2,7 @@ from source.Backtest import *
 from mpl_toolkits.mplot3d import Axes3D
 from scipy import interpolate
 import numpy as np
+from matplotlib.widgets import Slider
 
 
 class JMTendanceStrat(Strategy):
@@ -131,15 +132,15 @@ class JMMobileExpert(Expert):
         return "<{0}, long: {1}, short: {2}>".format(self.name, self.longMedian, self.shortMedian)
 
 
-def test_the_mobile_expert(number_of_line, number_of_column, print_time=True):
+def test_the_mobile_expert(number_of_line, number_of_column, first_day, last_day, print_time=True):
     beginning_time = clock()  # for time execution measurement
     matrix_of_results = np.zeros((number_of_line, number_of_column))
     for i in range(number_of_line):
-        print(i, (clock() - beginning_time), "s")
+        # print(i, (clock() - beginning_time), "s")
         for j in range(number_of_column):
             if j > i:
                 JMMobile = JMMobileExpert(theBacktest.market, "MobileExpert", longMedian=j+1, shortMedian=i+1)
-                theBacktest.simule(first_day=0, last_day=1000, string_mode=False)
+                theBacktest.simule(first_day=first_day, last_day=last_day, string_mode=False)
                 matrix_of_results[i, j] = JMMobile.results_description()[4]
             else:
                 matrix_of_results[i, j] = 0.5
@@ -148,20 +149,114 @@ def test_the_mobile_expert(number_of_line, number_of_column, print_time=True):
     return matrix_of_results
 
 
-def plot_the_mobile_expert(number_of_line, number_of_column):
-    X = np.arange(1, number_of_line + 1)
-    Y = np.arange(1, number_of_column + 1)
-    X, Y = np.meshgrid(X, Y)
-    Z = matrix_of_results
-    fig = plt.figure()
-    ax = fig.gca(projection='3d')
-    surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=plt.cm.RdYlGn, linewidth=0, antialiased=True)
-    # ax.scatter(X, Y, Z)
-    # surf1 = ax.plot_surface(X, Y, -Z + 1, rstride=1, cstride=1, cmap=plt.cm.RdYlBu, linewidth=0, antialiased=True)
-    ax.set_zlim(0, 1)
-    fig.colorbar(surf, shrink=0.7, aspect=10)
-    plt.show()
+def super_test_the_mobile_expert(number_of_line, number_of_column, windows_duration, length_of_the_asset, print_time=True, **kwargs):
 
+    if "windows_offset" in kwargs:
+        windows_offset = kwargs["windows_offset"]
+    else:
+        windows_offset = windows_duration
+
+    list_of_results = []
+    number_of_windows = int((length_of_the_asset - windows_duration) / windows_offset)
+    print(number_of_windows)
+
+    first_day = 0
+    last_day = windows_duration
+    print(first_day, last_day)
+
+    beginning_time = clock()  # for time execution measurement
+    for i in range(number_of_windows):
+        list_of_results.append(test_the_mobile_expert(number_of_line, number_of_column, first_day, last_day, print_time=False))
+        first_day += windows_offset
+        last_day += windows_offset
+        print(first_day, last_day, (clock() - beginning_time), "s")
+
+    return list_of_results
+
+
+def plot_the_mobile_expert(number_of_line, number_of_column, matrix_of_results, plot_type="3D"):
+    if plot_type == "3D":
+        X = np.arange(0, number_of_line)
+        Y = np.arange(0, number_of_column)
+
+        # X, Y = np.meshgrid(X, Y)  # old command, does not work if number_of_column != number_of_line
+        X, Y = np.mgrid[0:number_of_line, 0:number_of_column]
+        # print(X, Y, "\n", matrix_of_results)
+        fig = plt.figure()
+
+        ax = fig.add_subplot(111, projection='3d')  # fig.gca(projection='3d')
+        surf = ax.plot_surface(X, Y, matrix_of_results, rstride=1, cstride=1, cmap=plt.cm.RdYlGn, linewidth=0, antialiased=True)
+
+        # # to add a new part in the graph NB localisation problem needs to be solved
+        # ax2 = fig.add_subplot(211, projection='3d')
+        # surf2 = ax2.plot_surface(Y, X, matrix_of_results, rstride=1, cstride=1, cmap=plt.cm.RdYlGn, linewidth=0, antialiased=True)
+
+        # this is the cloud of points
+        # ax.scatter(X, Y, Z)
+
+        ax.set_zlim(0, 1)
+        fig.colorbar(surf, shrink=0.7, aspect=10)
+
+        alpha_axis  = plt.axes([0.25, 0.15, 0.65, 0.03])
+        alpha_slider = Slider(alpha_axis, 'Amp', 0, 1, valinit=.5)
+        alpha_slider.on_changed(lambda val: update(ax, val))
+
+        def update(ax, val):
+            alpha = alpha_slider.val
+            ax.cla()
+            plt.draw()
+
+        plt.show()
+
+    if plot_type == "2D":
+        # # supersimple method
+        # plt.matshow(matrix_of_results)
+        # plt.show(block=True)
+
+        # fig = plt.figure()  # seems useless here
+        # ax = fig.add_subplot()  # seems useless here
+        plt.imshow(matrix_of_results, cmap=plt.cm.RdYlGn, interpolation="nearest")
+        plt.colorbar()
+        # plt.plot()  # seems useless here
+        plt.show(block=True)
+
+
+def plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_type="3D", interpolation="nearest"):
+    if plot_type == "2D":
+
+        # the min and max of the list of matrix are searched to set the scale
+        list_of_max = []
+        list_of_min = []
+        for matrix in list_of_results:
+            list_of_max.append(matrix.max())
+            list_of_min.append(matrix.min())
+        max_of_results = max(list_of_max)
+        min_of_results = min(list_of_min)
+
+        # use for the slider
+        val_max = 1/len(list_of_results)
+
+        def update(ax, val):
+            index = min(int(val/val_max), len(list_of_results)-1)
+            # print(val, index)
+            ax.cla()
+            image = ax.imshow(list_of_results[index], cmap=plt.cm.RdYlGn, interpolation=interpolation)
+            image.set_clim([min_of_results, max_of_results])
+            # plt.draw()
+
+
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        fig.subplots_adjust(left=0.25, bottom=0.25)
+        image = ax.imshow(list_of_results[0], cmap=plt.cm.RdYlGn, interpolation=interpolation)
+        image.set_clim([min_of_results, max_of_results])
+        plt.colorbar(image)
+        alpha_axis = plt.axes([0.25, 0.15, 0.65, 0.03])
+        alpha_slider = Slider(alpha_axis, 'First day', 0, 1, valinit=0)
+        alpha_slider.on_changed((lambda val: update(ax, val)))
+
+        plt.show(block=True)
 
 if __name__ == "__main__":
     # An instance of Backtest is created
@@ -173,13 +268,14 @@ if __name__ == "__main__":
     # BTCUSD = theBacktest.add_asset_from_csv("Data/BTCUSD_propre.csv", "propre", ";", "BTCUSD")
     # IBM = theBacktest.add_asset_from_csv("Data/ibm_propre.csv", "propre", ";", "IBM")
     # GS = theBacktest.add_asset_from_csv("Data/GS_yahoo.csv", "yahoo", ",", "GS")
-    IGE = theBacktest.add_asset_from_csv("Data/IGE_yahoo.csv", "yahoo", ",", "IGE")
+    # IGE = theBacktest.add_asset_from_csv("Data/IGE_yahoo.csv", "yahoo", ",", "IGE")
     # SPY = theBacktest.add_asset_from_csv("Data/SPY_yahoo.csv", "yahoo", ",", "SPY")
+    IBMyahoo = theBacktest.add_asset_from_csv("Data/IBM_1970_2010_yahoo.csv", "yahoo", ",", "IBM")
 
     # Strategies are created
     # randomStrategy = Strategy(theBacktest.market, "Random Srategy", cash=5000)
     # JMstrat = JMTendanceStrat(theBacktest.market, "StupidDetector", cash=15000)
-    firstDayStrat = FirstDayBuyEverythingStrategy(theBacktest.market, "BuyTheFirstDay", asset=IGE, cash=15000)
+    # firstDayStrat = FirstDayBuyEverythingStrategy(theBacktest.market, "BuyTheFirstDay", asset=IGE, cash=15000)
     # JMstratTest = JMTestStrat(theBacktest.market, "TestStrat", cash=5000)
 
     # Experts are created
@@ -187,16 +283,28 @@ if __name__ == "__main__":
     # TendanceExpert = JMTendanceExpert(theBacktest.market, "TendanceExpert")
     # MobileExpert = JMMobileExpert(theBacktest.market, "MobileExpert", longMedian=20, shortMedian=10)
 
-    # beginning_time = clock()  # for time execution measurement
-    # number_of_line = 50
-    # number_of_column = 50
-    # matrix_of_results = test_the_mobile_expert(number_of_line, number_of_column)
-    # plot_the_mobile_expert(number_of_line, number_of_column)
+    beginning_time = clock()  # for time execution measurement
+    number_of_line = 10
+    number_of_column = 10
+    # matrix_of_results = test_the_mobile_expert(number_of_line, number_of_column, 0, 1000)
+
+    windows_duration = 1000
+    length_of_the_asset = 1500
+    list_of_results = super_test_the_mobile_expert(number_of_line, number_of_column,
+                                                   windows_duration, length_of_the_asset,
+                                                   windows_offset=100, print_time=True)
+
+    # for i in range(len(list_of_results)):
+    #     plot_the_mobile_expert(number_of_line, number_of_column, list_of_results[i], plot_type="3D")
+
+    plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_type="2D",  interpolation="nearest")
+
+
 
     # We plot the assets used
     # theBacktest.market.plot_market()
 
-    theBacktest.simule(first_day=50, last_day=100, string_mode=True)
+    # theBacktest.simule(first_day=50, last_day=100, string_mode=True)
     # MobileExpert.plot_medians()
 
     # print("open:", JMstratTest.portfolio.openPositionList)
