@@ -34,8 +34,11 @@ class Backtest:
         to the last day (or the last_day included given in the parameters) """
 
         beginning_time = clock()  # for time execution measurement
+
         if "last_day" in kwargs:
             last_day = min(self.market.maximumDay, kwargs["last_day"])
+            if self.market.maximumDay < kwargs["last_day"]:
+                print("-!- PARAM last_day TOO BIG: {} in simule -!-".format(last_day))
         else:
             last_day = self.market.maximumDay
 
@@ -43,6 +46,7 @@ class Backtest:
             first_day = min(last_day, kwargs["first_day"])
         else:
             first_day = 0
+
         self.market._theDay = first_day
         # print("first day :", first_day, "and last day :", last_day)
         while self.market.play_day(last_day):

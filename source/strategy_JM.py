@@ -157,19 +157,19 @@ def super_test_the_mobile_expert(number_of_line, number_of_column, windows_durat
         windows_offset = windows_duration
 
     list_of_results = []
+
     number_of_windows = int((length_of_the_asset - windows_duration) / windows_offset)
-    print(number_of_windows)
 
     first_day = 0
     last_day = windows_duration
-    print(first_day, last_day)
 
     beginning_time = clock()  # for time execution measurement
-    for i in range(number_of_windows):
+    for i in range(number_of_windows+1):
         list_of_results.append(test_the_mobile_expert(number_of_line, number_of_column, first_day, last_day, print_time=False))
+        print(first_day, last_day, (clock() - beginning_time), "s")
         first_day += windows_offset
         last_day += windows_offset
-        print(first_day, last_day, (clock() - beginning_time), "s")
+
 
     return list_of_results
 
@@ -222,19 +222,20 @@ def plot_the_mobile_expert(number_of_line, number_of_column, matrix_of_results, 
 
 
 def plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_type="3D", interpolation="nearest"):
+
+    # the min and max of the list of matrix are searched to set the scale
+    list_of_max = []
+    list_of_min = []
+    for matrix in list_of_results:
+        list_of_max.append(matrix.max())
+        list_of_min.append(matrix.min())
+    max_of_results = max(list_of_max)
+    min_of_results = min(list_of_min)
+
+    # use for the slider
+    val_max = 1/len(list_of_results)
+
     if plot_type == "2D":
-
-        # the min and max of the list of matrix are searched to set the scale
-        list_of_max = []
-        list_of_min = []
-        for matrix in list_of_results:
-            list_of_max.append(matrix.max())
-            list_of_min.append(matrix.min())
-        max_of_results = max(list_of_max)
-        min_of_results = min(list_of_min)
-
-        # use for the slider
-        val_max = 1/len(list_of_results)
 
         def update(ax, val):
             index = min(int(val/val_max), len(list_of_results)-1)
@@ -243,8 +244,6 @@ def plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_
             image = ax.imshow(list_of_results[index], cmap=plt.cm.RdYlGn, interpolation=interpolation)
             image.set_clim([min_of_results, max_of_results])
             # plt.draw()
-
-
 
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -257,6 +256,41 @@ def plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_
         alpha_slider.on_changed((lambda val: update(ax, val)))
 
         plt.show(block=True)
+
+    if plot_type == "3D":
+
+        def update(ax, val):
+            index = min(int(val/val_max), len(list_of_results)-1)
+            print(val, index)
+            ax.cla()
+            surf = ax.plot_surface(X, Y, list_of_results[index], rstride=1, cstride=1,
+                               cmap=plt.cm.RdYlGn, linewidth=0, antialiased=True)
+            ax.set_zlim(min_of_results, max_of_results)
+            surf.set_clim([min_of_results, max_of_results])
+            # plt.draw()
+
+
+        X = np.arange(0, number_of_line)
+        Y = np.arange(0, number_of_column)
+        X, Y = np.mgrid[0:number_of_line, 0:number_of_column]
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        fig.subplots_adjust(left=0.25, bottom=0.25)
+
+
+        surf = ax.plot_surface(X, Y, list_of_results[0], rstride=1, cstride=1,
+                               cmap=plt.cm.RdYlGn, linewidth=0, antialiased=True)
+        ax.set_zlim(min_of_results, max_of_results)
+        fig.colorbar(surf, shrink=0.7, aspect=10)
+
+        surf.set_clim([min_of_results, max_of_results])
+        alpha_axis = plt.axes([0.25, 0.15, 0.65, 0.03])
+        alpha_slider = Slider(alpha_axis, 'First day', 0, 1, valinit=0)
+        alpha_slider.on_changed((lambda val: update(ax, val)))
+
+        plt.show(block=True)
+
 
 if __name__ == "__main__":
     # An instance of Backtest is created
@@ -288,16 +322,16 @@ if __name__ == "__main__":
     number_of_column = 10
     # matrix_of_results = test_the_mobile_expert(number_of_line, number_of_column, 0, 1000)
 
-    windows_duration = 1000
-    length_of_the_asset = 1500
+    windows_duration = 600
+    length_of_the_asset = 800
     list_of_results = super_test_the_mobile_expert(number_of_line, number_of_column,
                                                    windows_duration, length_of_the_asset,
-                                                   windows_offset=100, print_time=True)
+                                                   windows_offset=20, print_time=True)
 
     # for i in range(len(list_of_results)):
     #     plot_the_mobile_expert(number_of_line, number_of_column, list_of_results[i], plot_type="3D")
-
-    plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_type="2D",  interpolation="nearest")
+    print("len list", len(list_of_results))
+    plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_type="3D", interpolation="nearest")
 
 
 
