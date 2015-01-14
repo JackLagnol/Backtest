@@ -2,7 +2,7 @@ from source.Backtest import *
 from mpl_toolkits.mplot3d import Axes3D
 from scipy import interpolate
 import numpy as np
-from matplotlib.widgets import Slider
+from matplotlib.widgets import Slider, RadioButtons
 
 
 class JMTendanceStrat(Strategy):
@@ -246,15 +246,85 @@ def plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_
             # plt.draw()
 
         fig = plt.figure()
-        ax = fig.add_subplot(111)
+        ax1 = fig.add_subplot(111)
         fig.subplots_adjust(left=0.25, bottom=0.25)
-        image = ax.imshow(list_of_results[0], cmap=plt.cm.RdYlGn, interpolation=interpolation)
+        image = ax1.imshow(list_of_results[0], cmap=plt.cm.RdYlGn, interpolation=interpolation)
         image.set_clim([min_of_results, max_of_results])
         plt.colorbar(image)
         alpha_axis = plt.axes([0.25, 0.15, 0.65, 0.03])
         alpha_slider = Slider(alpha_axis, 'First day', 0, 1, valinit=0)
-        alpha_slider.on_changed((lambda val: update(ax, val)))
+        alpha_slider.on_changed((lambda val: update(ax1, val)))
 
+        plt.show(block=True)
+
+    if plot_type == "2D+":
+
+        def update(ax, val):
+            index = min(int(val/val_max), len(list_of_results)-1)
+            # print(val, index)
+            ax.cla()
+            image1 = ax.imshow(list_of_results[index], cmap=plt.cm.RdYlGn, interpolation=interpolation)
+            image1.set_clim([min_of_results, max_of_results])
+            # plt.draw()
+
+        def radiofunc(label):
+            if label == "variance":
+                image = ax2.imshow(variance, cmap=plt.cm.YlGn, interpolation=interpolation)
+                image.set_clim([0, variance.max()])
+                colorbar2.update_bruteforce(image)
+                # colorbar2 = fig.colorbar(image, ax=ax2)
+            if label == "expectation":
+                image = ax2.imshow(esperance, cmap=plt.cm.RdYlGn, interpolation=interpolation)
+                # image.set_clim([min_of_results, max_of_results])
+                colorbar2.update_bruteforce(image)
+            if label == "EV  - VAR":
+                image = ax2.imshow(esperance-variance, cmap=plt.cm.YlGn, interpolation=interpolation)
+                # image.set_clim([min_of_results, max_of_results])
+                colorbar2.update_bruteforce(image)
+            if label == "EV + VAR":
+                image = ax2.imshow(esperance+variance, cmap=plt.cm.YlGn, interpolation=interpolation)
+                # image.set_clim([min_of_results, max_of_results])
+                colorbar2.update_bruteforce(image)
+            plt.draw()
+
+
+        esperance = sum(list_of_results)/len(list_of_results)
+
+        variance = np.zeros((number_of_line, number_of_column))
+        for i in range(number_of_line):
+            for j in range(number_of_column):
+                if j > i:
+                    list_of_elem = []
+                    for matrix in list_of_results:
+                        list_of_elem.append(matrix[i, j])
+                    print(list_of_elem)
+                    variance[i, j] = statistics.stdev(list_of_elem)
+        print(variance*100)
+
+        fig = plt.figure()
+        ax1 = fig.add_subplot(121)
+        ax2 = fig.add_subplot(122)
+
+        fig.subplots_adjust(left=0.25, bottom=0.25)
+        image1 = ax1.imshow(list_of_results[0], cmap=plt.cm.RdYlGn, interpolation=interpolation)
+        image1.set_clim([min_of_results, max_of_results])
+
+        image = ax2.imshow(esperance, cmap=plt.cm.RdYlGn, interpolation=interpolation)
+        ax2.set_xlabel("Long Median")
+        ax2.set_ylabel("Short Median")
+        colorbar1 = fig.colorbar(image1, ax=ax1)
+        colorbar2 = fig.colorbar(image, ax=ax2)
+
+        alpha_axis = plt.axes([0.15, 0.12, 0.5, 0.05])
+        alpha_slider = Slider(alpha_axis, 'First day', 0, 1, valinit=0)
+        alpha_slider.on_changed((lambda val: update(ax1, val)))
+
+        rax = plt.axes([0.75, 0.1, 0.2, 0.1])  # rect = [left, bottom, width, height]
+        radio = RadioButtons(rax, ("variance", "expectation", "EV  - VAR", "EV + VAR"), active=1)
+        radio.on_clicked(radiofunc)
+
+        fig.subplots_adjust(left=0.1, bottom=0.25)
+        plt.show(block=True)
         plt.show(block=True)
 
     if plot_type == "3D":
@@ -264,7 +334,7 @@ def plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_
             print(val, index)
             ax.cla()
             surf = ax.plot_surface(X, Y, list_of_results[index], rstride=1, cstride=1,
-                               cmap=plt.cm.RdYlGn, linewidth=0, antialiased=True)
+                                   cmap=plt.cm.RdYlGn, linewidth=0, antialiased=True)
             ax.set_zlim(min_of_results, max_of_results)
             surf.set_clim([min_of_results, max_of_results])
             # plt.draw()
@@ -275,20 +345,97 @@ def plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_
         X, Y = np.mgrid[0:number_of_line, 0:number_of_column]
 
         fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
+        ax1 = fig.add_subplot(111, projection='3d')
         fig.subplots_adjust(left=0.25, bottom=0.25)
 
 
-        surf = ax.plot_surface(X, Y, list_of_results[0], rstride=1, cstride=1,
+        surf = ax1.plot_surface(X, Y, list_of_results[0], rstride=1, cstride=1,
                                cmap=plt.cm.RdYlGn, linewidth=0, antialiased=True)
-        ax.set_zlim(min_of_results, max_of_results)
+        ax1.set_zlim(min_of_results, max_of_results)
         fig.colorbar(surf, shrink=0.7, aspect=10)
 
         surf.set_clim([min_of_results, max_of_results])
         alpha_axis = plt.axes([0.25, 0.15, 0.65, 0.03])
         alpha_slider = Slider(alpha_axis, 'First day', 0, 1, valinit=0)
-        alpha_slider.on_changed((lambda val: update(ax, val)))
+        alpha_slider.on_changed((lambda val: update(ax1, val)))
 
+        plt.show(block=True)
+
+    if plot_type == "3D+":
+
+        def update(ax, val):
+            index = min(int(val/val_max), len(list_of_results)-1)
+            # print(val, index)
+            ax.cla()
+            surf = ax.plot_surface(X, Y, list_of_results[index], rstride=1, cstride=1,
+                                   cmap=plt.cm.RdYlGn, linewidth=0.2, antialiased=True)
+            ax.set_zlim(min_of_results, max_of_results)
+            surf.set_clim([min_of_results, max_of_results])
+            # plt.draw()
+
+        def radiofunc(label):
+            if label == "variance":
+                image = ax2.imshow(variance, cmap=plt.cm.YlGn, interpolation=interpolation)
+                image.set_clim([0, variance.max()])
+                colorbar2.update_bruteforce(image)
+                # colorbar2 = fig.colorbar(image, ax=ax2)
+            if label == "expectation":
+                image = ax2.imshow(esperance, cmap=plt.cm.RdYlGn, interpolation=interpolation)
+                # image.set_clim([min_of_results, max_of_results])
+                colorbar2.update_bruteforce(image)
+            if label == "EV  - VAR":
+                image = ax2.imshow(esperance-variance, cmap=plt.cm.YlGn, interpolation=interpolation)
+                # image.set_clim([min_of_results, max_of_results])
+                colorbar2.update_bruteforce(image)
+            if label == "EV + VAR":
+                image = ax2.imshow(esperance+variance, cmap=plt.cm.YlGn, interpolation=interpolation)
+                # image.set_clim([min_of_results, max_of_results])
+                colorbar2.update_bruteforce(image)
+            plt.draw()
+
+        X = np.arange(0, number_of_line)
+        Y = np.arange(0, number_of_column)
+        X, Y = np.mgrid[0:number_of_line, 0:number_of_column]
+
+        fig = plt.figure()
+        ax1 = fig.add_subplot(121, projection='3d')
+        ax2 = fig.add_subplot(122)
+
+        esperance = sum(list_of_results)/len(list_of_results)
+
+        variance = np.zeros((number_of_line, number_of_column))
+        for i in range(number_of_line):
+            for j in range(number_of_column):
+                if j > i:
+                    list_of_elem = []
+                    for matrix in list_of_results:
+                        list_of_elem.append(matrix[i, j])
+                    print(list_of_elem)
+                    variance[i, j] = statistics.stdev(list_of_elem)
+        print(variance*100)
+
+
+
+        surf = ax1.plot_surface(X, Y, list_of_results[0], rstride=1, cstride=1,
+                                cmap=plt.cm.RdYlGn, linewidth=0.2, antialiased=True)
+        surf.set_clim([min_of_results, max_of_results])
+        ax1.set_zlim(min_of_results, max_of_results)
+
+        image = ax2.imshow(esperance, cmap=plt.cm.RdYlGn, interpolation=interpolation)
+        ax2.set_xlabel("Long Median")
+        ax2.set_ylabel("Short Median")
+        colorbar1 = fig.colorbar(surf, ax=ax1)
+        colorbar2 = fig.colorbar(image, ax=ax2)
+
+        alpha_axis = plt.axes([0.15, 0.12, 0.5, 0.05])
+        alpha_slider = Slider(alpha_axis, 'First day', 0, 1, valinit=0)
+        alpha_slider.on_changed((lambda val: update(ax1, val)))
+
+        rax = plt.axes([0.75, 0.1, 0.2, 0.1])  # rect = [left, bottom, width, height]
+        radio = RadioButtons(rax, ("variance", "expectation", "EV  - VAR", "EV + VAR"), active=1)
+        radio.on_clicked(radiofunc)
+
+        fig.subplots_adjust(left=0.1, bottom=0.25)
         plt.show(block=True)
 
 
@@ -318,20 +465,21 @@ if __name__ == "__main__":
     # MobileExpert = JMMobileExpert(theBacktest.market, "MobileExpert", longMedian=20, shortMedian=10)
 
     beginning_time = clock()  # for time execution measurement
-    number_of_line = 10
-    number_of_column = 10
+    number_of_line = 5  # short median
+    number_of_column = 5  # long median
+
     # matrix_of_results = test_the_mobile_expert(number_of_line, number_of_column, 0, 1000)
 
-    windows_duration = 600
-    length_of_the_asset = 800
+    windows_duration = 1000
+    length_of_the_asset = 5000
     list_of_results = super_test_the_mobile_expert(number_of_line, number_of_column,
                                                    windows_duration, length_of_the_asset,
-                                                   windows_offset=20, print_time=True)
+                                                   windows_offset=1000, print_time=True)
 
     # for i in range(len(list_of_results)):
     #     plot_the_mobile_expert(number_of_line, number_of_column, list_of_results[i], plot_type="3D")
     print("len list", len(list_of_results))
-    plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_type="3D", interpolation="nearest")
+    plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_type="2D+", interpolation="nearest")
 
 
 
