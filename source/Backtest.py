@@ -121,6 +121,19 @@ class DataReader:
                 temp_data += [float(row[6])]
             self.data = temp_data
 
+        elif sort_type == "ltc":  # G : get adjusted close data from csv (date, open, high, low, close, adjclose)
+            temp_data = []
+            self.data = self.data[1:]
+            # reverse the order of the data (the oldest become the last ones)
+            for i in range(len(self.data)):
+                temp_data += [self.data[-i-1]]
+
+            self.data = temp_data
+            temp_data = []
+            for row in self.data:
+                temp_data += [float(row[4])]
+            self.data = temp_data
+
         """ Not necessary for the moment (see also in Backtest)
         elif sort_type == "time":  # time for yahoo finance
             c = []

@@ -198,7 +198,7 @@ class Portfolio:
         # the portfolio is registered in the market
         market.register_portfolio(self)
 
-        print(self.__repr__())
+        # print(self.__repr__())
 
     def __repr__(self):
         return "<{0}, cash : {1}$>".format(self.name, self.initialCash)
@@ -300,7 +300,7 @@ class Strategy:
         self.portfolio = Portfolio("Portfolio of " + name, cash, self.market)
         # the strategy is registered in the market
         self.market.register_strategy(self)
-        print(self.__repr__())
+        # print(self.__repr__())
 
     def __repr__(self):
         return "<{0}>".format(self.name)

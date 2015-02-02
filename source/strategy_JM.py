@@ -99,9 +99,9 @@ class JMMobileExpert(Expert):
             if short_sum > long_sum and self.pastLongSum[-1] > self.pastShortSum[-1]:
                 Prediction(self.asset, pred[0], self.market.theDay + self.predictionTerm,
                            self, self.market.theDay, self.market)
-            elif short_sum < long_sum and self.pastLongSum[-1] < self.pastShortSum[-1]:
-                Prediction(self.asset, pred[1], self.market.theDay + self.predictionTerm,
-                           self, self.market.theDay, self.market)
+            # elif short_sum < long_sum and self.pastLongSum[-1] < self.pastShortSum[-1]:
+            #     Prediction(self.asset, pred[1], self.market.theDay + self.predictionTerm,
+            #                self, self.market.theDay, self.market)
 
             self.pastLongSum.append(long_sum)
             self.pastShortSum.append(short_sum)
@@ -453,39 +453,39 @@ if __name__ == "__main__":
     GS = theBacktest.add_asset_from_csv("Data/GS_yahoo.csv", "yahoo", ",", "GS")
     # IGE = theBacktest.add_asset_from_csv("Data/IGE_yahoo.csv", "yahoo", ",", "IGE")
     # SPY = theBacktest.add_asset_from_csv("Data/SPY_yahoo.csv", "yahoo", ",", "SPY")
-    # IBMyahoo = theBacktest.add_asset_from_csv("Data/IBM_1970_2010_yahoo.csv", "yahoo", ",", "IBM")
+    IBMyahoo = theBacktest.add_asset_from_csv("Data/IBM_1970_2010_yahoo.csv", "yahoo", ",", "IBM")
 
     # Strategies are created
-    # randomStrategy = Strategy(theBacktest.market, "Random Srategy", cash=5000)
-    # JMstrat = JMTendanceStrat(theBacktest.market, "StupidDetector", cash=15000)
-    # firstDayStrat = FirstDayBuyEverythingStrategy(theBacktest.market, "BuyTheFirstDay", asset=IGE, cash=15000)
-    # JMstratTest = JMTestStrat(theBacktest.market, "TestStrat", cash=5000)
+    randomStrategy = Strategy(theBacktest.market, "Random Srategy", cash=15000)
+    JMstrat = JMTendanceStrat(theBacktest.market, "StupidDetector", cash=15000)
+    firstDayStrat = FirstDayBuyEverythingStrategy(theBacktest.market, "BuyTheFirstDay", asset=GS, cash=15000)
+    # JMstratTest = JMTestStrat(theBacktest.market, "TestStrat", cash=15000)
 
     # Experts are created
     # absurdExpert = Expert(theBacktest.market, "AbsurdExpert")
-    # TendanceExpert = JMTendanceExpert(theBacktest.market, "TendanceExpert")
-    # MobileExpert = JMMobileExpert(theBacktest.market, "MobileExpert", longMedian=20, shortMedian=10)
+    TendanceExpert = JMTendanceExpert(theBacktest.market, "TendanceExpert")
+    MobileExpert = JMMobileExpert(theBacktest.market, "MobileExpert", longMedian=20, shortMedian=10)
 
     # beginning_time = clock()  # for time execution measurement
-    number_of_line = 20  # short median
-    number_of_column = 20  # long median
-
-
-    # matrix_of_results = test_the_mobile_expert(number_of_line, number_of_column, 0, 1000)
-
-    windows_duration = 500
-    first_day = 0
-    last_day = 1000
-    list_of_results = super_test_the_mobile_expert(number_of_line, number_of_column,
-                                                   windows_duration, first_day, last_day,
-                                                   windows_offset=250, print_time=True)
+    # number_of_line = 55  # short median
+    # number_of_column = 55  # long median
+    #
+    #
+    # # matrix_of_results = test_the_mobile_expert(number_of_line, number_of_column, 0, 1000)
+    #
+    # windows_duration = 800
+    # first_day = 0
+    # last_day = 1600
+    # list_of_results = super_test_the_mobile_expert(number_of_line, number_of_column,
+    #                                                windows_duration, first_day, last_day,
+    #                                                windows_offset=400, print_time=True)
 
     # for i in range(len(list_of_results)):
     # plot_the_mobile_expert(number_of_line, number_of_column, list_of_results[i], plot_type="3D")
-    plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_type="3D+", interpolation="nearest")
+    # plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_type="3D+", interpolation="nearest")
 
     # We plot the assets used
     # theBacktest.market.plot_market()
 
-    # theBacktest.simule(first_day=50, last_day=100, string_mode=True)
+    theBacktest.simule(first_day=0, last_day=500, string_mode=True)
     # MobileExpert.plot_medians()
