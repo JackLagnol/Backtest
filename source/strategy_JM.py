@@ -68,10 +68,10 @@ class JMMobileExpert(Expert):
         else:
             self.predictionTerm = temp_kwargs["shortMedian"]
 
-        super().__init__(*args, **kwargs)
-
         self.longMedian = temp_kwargs["longMedian"]
         self.shortMedian = temp_kwargs["shortMedian"]
+
+        super().__init__(*args, **kwargs)
 
         self.pastShortSum = []
         self.pastLongSum = []
@@ -87,21 +87,31 @@ class JMMobileExpert(Expert):
         pred = ["UP", "DOWN"]
         if self.initialised:
             data = self.market.get_asset_data(self.asset)
-            short_sum = 0
-            long_sum = 0
-            for i in range(self.longMedian):
-                long_sum += data[-i - 1]  # -1 because i start at 0
-            long_sum /= self.longMedian
-            for i in range(self.shortMedian):
-                short_sum += data[-i - 1]  # -1 because i start at 0
-            short_sum /= self.shortMedian
+
+            # old methode, unefficient
+            # short_sum = 0
+            # long_sum = 0
+            # for i in range(self.longMedian):
+            #     long_sum += data[-i - 1]  # -1 because i start at 0
+            # long_sum /= self.longMedian
+            # for i in range(self.shortMedian):
+            #     short_sum += data[-i - 1]  # -1 because i start at 0
+            # short_sum /= self.shortMedian
+
+            short_sum = self.pastShortSum[-1]
+            long_sum = self.pastLongSum[-1]
+
+            short_sum += data[-1] / self.shortMedian  # -1 because i start at 0
+            short_sum -= data[-1 - self.shortMedian] / self.shortMedian  # -1 because i start at 0
+            long_sum += data[-1] / self.longMedian  # -1 because i start at 0
+            long_sum -= data[-1 - self.longMedian] / self.longMedian  # -1 because i start at 0
 
             if short_sum > long_sum and self.pastLongSum[-1] > self.pastShortSum[-1]:
                 Prediction(self.asset, pred[0], self.market.theDay + self.predictionTerm,
                            self, self.market.theDay, self.market)
-            # elif short_sum < long_sum and self.pastLongSum[-1] < self.pastShortSum[-1]:
-            #     Prediction(self.asset, pred[1], self.market.theDay + self.predictionTerm,
-            #                self, self.market.theDay, self.market)
+            elif short_sum < long_sum and self.pastLongSum[-1] < self.pastShortSum[-1]:
+                Prediction(self.asset, pred[1], self.market.theDay + self.predictionTerm,
+                           self, self.market.theDay, self.market)
 
             self.pastLongSum.append(long_sum)
             self.pastShortSum.append(short_sum)
@@ -450,28 +460,29 @@ if __name__ == "__main__":
     # STUP = theBacktest.add_asset_from_csv("Data/stupidtest.csv", "propre", ";", "STUP")
     # BTCUSD = theBacktest.add_asset_from_csv("Data/BTCUSD_propre.csv", "propre", ";", "BTCUSD")
     # IBM = theBacktest.add_asset_from_csv("Data/ibm_propre.csv", "propre", ";", "IBM")
-    GS = theBacktest.add_asset_from_csv("Data/GS_yahoo.csv", "yahoo", ",", "GS")
+    # GS = theBacktest.add_asset_from_csv("Data/GS_yahoo.csv", "yahoo", ",", "GS")
     # IGE = theBacktest.add_asset_from_csv("Data/IGE_yahoo.csv", "yahoo", ",", "IGE")
     # SPY = theBacktest.add_asset_from_csv("Data/SPY_yahoo.csv", "yahoo", ",", "SPY")
-    IBMyahoo = theBacktest.add_asset_from_csv("Data/IBM_1970_2010_yahoo.csv", "yahoo", ",", "IBM")
+    # IBMyahoo = theBacktest.add_asset_from_csv("Data/IBM_1970_2010_yahoo.csv", "yahoo", ",", "IBM")
+    aapl = theBacktest.add_asset_from_csv("Data/MAdata/aapl-30.12.94.csv", "yahoo", ",", "AAPL")
 
     # Strategies are created
-    randomStrategy = Strategy(theBacktest.market, "Random Srategy", cash=15000)
-    JMstrat = JMTendanceStrat(theBacktest.market, "StupidDetector", cash=15000)
-    firstDayStrat = FirstDayBuyEverythingStrategy(theBacktest.market, "BuyTheFirstDay", asset=GS, cash=15000)
+    # randomStrategy = Strategy(theBacktest.market, "Random Srategy", cash=15000)
+    # JMstrat = JMTendanceStrat(theBacktest.market, "StupidDetector", cash=15000)
+    # firstDayStrat = FirstDayBuyEverythingStrategy(theBacktest.market, "BuyTheFirstDay", asset=aapl, cash=15000)
     # JMstratTest = JMTestStrat(theBacktest.market, "TestStrat", cash=15000)
 
     # Experts are created
     # absurdExpert = Expert(theBacktest.market, "AbsurdExpert")
-    TendanceExpert = JMTendanceExpert(theBacktest.market, "TendanceExpert")
-    MobileExpert = JMMobileExpert(theBacktest.market, "MobileExpert", longMedian=20, shortMedian=10)
+    # TendanceExpert = JMTendanceExpert(theBacktest.market, "TendanceExpert")
+    MobileExpert = JMMobileExpert(theBacktest.market, "MobileExpert", longMedian=200, shortMedian=150)
 
     # beginning_time = clock()  # for time execution measurement
     # number_of_line = 55  # short median
     # number_of_column = 55  # long median
     #
     #
-    # # matrix_of_results = test_the_mobile_expert(number_of_line, number_of_column, 0, 1000)
+    # matrix_of_results = test_the_mobile_expert(number_of_line, number_of_column, 0, 1000)
     #
     # windows_duration = 800
     # first_day = 0
@@ -487,5 +498,6 @@ if __name__ == "__main__":
     # We plot the assets used
     # theBacktest.market.plot_market()
 
-    theBacktest.simule(first_day=0, last_day=500, string_mode=True)
+    theBacktest.simule(string_mode=True)
+    # theBacktest.simule(first_day=0, last_day=500, string_mode=True)
     # MobileExpert.plot_medians()
