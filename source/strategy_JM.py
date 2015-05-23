@@ -452,6 +452,43 @@ def plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_
         plt.show(block=True)
 
 
+def write_a_prediction_list_on_file(file_name, prediction_list, format_type=0, overwrite=True, first_line=None):
+    """  """
+    data = []
+    for prediction in prediction_list:
+        if format_type == 0:  # [long, short, day, isTrue]       without asset
+            data.append([prediction.expert.longMedian, prediction.expert.shortMedian,
+                         prediction.day, prediction.isTrue])
+
+        if format_type == 1:  # [long, short, asset, day, isTrue]
+            data.append([prediction.expert.longMedian, prediction.expert.shortMedian,
+                         prediction.asset.name, prediction.day, prediction.isTrue])
+
+    if format_type == 2:  # [long, short, asset, mean, number of prediction]
+        mean = [prediction.isTrue for prediction in prediction_list].count(True)/len(prediction_list)
+        data.append([prediction_list[0].expert.longMedian, prediction_list[0].expert.shortMedian,
+                     prediction_list[0].asset.name, mean, len(prediction_list)])
+        # print(data)
+
+    data_writer(file_name, data, overwrite=overwrite, first_line=first_line)
+
+
+def test_and_write_several_experts(list_of_medians, file_name, print_time=True, overwrite=True, format_type=0):
+    """  """
+    if overwrite:
+        data_writer(file_name, [])
+
+    beginning_time = clock()  # for time execution measurement
+    for couple in list_of_medians:
+        # print(couple[0])
+        the_expert = JMMobileExpert(theBacktest.market, "MobileExpert", longMedian=couple[0], shortMedian=couple[1])
+        theBacktest.simule(string_mode=False)
+        write_a_prediction_list_on_file(file_name, the_expert.predictionMadeList,
+                                        format_type=format_type, overwrite=False)
+        theBacktest.reset()
+    if print_time:
+        print((clock() - beginning_time), "s")
+
 if __name__ == "__main__":
     # An instance of Backtest is created
     theBacktest = Backtest()
@@ -465,7 +502,9 @@ if __name__ == "__main__":
     # IGE = theBacktest.add_asset_from_csv("Data/IGE_yahoo.csv", "yahoo", ",", "IGE")
     # SPY = theBacktest.add_asset_from_csv("Data/SPY_yahoo.csv", "yahoo", ",", "SPY")
     # IBMyahoo = theBacktest.add_asset_from_csv("Data/IBM_1970_2010_yahoo.csv", "yahoo", ",", "IBM")
-    aapl = theBacktest.add_asset_from_csv("Data/MAdata/aapl-30.12.94.csv", "yahoo", ",", "AAPL")
+    # aapl = theBacktest.add_asset_from_csv("Data/MAdata/aapl-30.12.94.csv", "yahoo", ",", "AAPL")
+    msft = theBacktest.add_asset_from_csv("Data/MAdata/msft-30.12.94.csv", "yahoo", ",", "MSFT")
+
     # randomStrategy = Strategy(theBacktest.market, "Random Srategy", cash=15000)
     # JMstrat = JMTendanceStrat(theBacktest.market, "StupidDetector", cash=15000)
     # firstDayStrat = FirstDayBuyEverythingStrategy(theBacktest.market, "BuyTheFirstDay", asset=aapl, cash=15000)
@@ -476,14 +515,34 @@ if __name__ == "__main__":
     # TendanceExpert = JMTendanceExpert(theBacktest.market, "TendanceExpert")
     # MobileExpert = JMMobileExpert(theBacktest.market, "MobileExpert", longMedian=20, shortMedian=10)
 
-    print(test_the_mobile_expert(3, 3, 0, 500, print_time=True))
+    # theBacktest.simule(string_mode=True)
+    # theBacktest.reset()
 
+    # print(theBacktest.market.expertList[0].predictionMadeList)
+    # write_a_prediction_list_on_file("Results/test2.csv", MobileExpert.predictionMadeList, format_type=2, overwrite=True)
+    # data_writer("Results/test.csv", [["colonne1", "colonne2"], [41, 42, 43]], overwrite=False)
+
+    list_of_medians = []
+    for i in range(20, 201, 5):
+        for j in range(10, min(i-9, 151), 5):
+            list_of_medians.append([i, j])
+    # print("length = ", len(list_of_medians))
+    test_and_write_several_experts(list_of_medians, "Results/test4.csv", print_time=True, overwrite=True, format_type=2)
+
+
+
+
+
+
+
+
+# Code used to directly test several MMexpert
+
+    # print(test_the_mobile_expert(3, 3, 0, 500, print_time=True))
 
     # beginning_time = clock()  # for time execution measurement
     # number_of_line = 55  # short median
     # number_of_column = 55  # long median
-    #
-    #
     # matrix_of_results = test_the_mobile_expert(number_of_line, number_of_column, 0, 1000)
     #
     # windows_duration = 800
@@ -497,6 +556,10 @@ if __name__ == "__main__":
     # plot_the_mobile_expert(number_of_line, number_of_column, list_of_results[i], plot_type="3D")
     # plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_type="3D+", interpolation="nearest")
 
+
+
+
+# may be useful part of cade
     # We plot the assets used
     # theBacktest.market.plot_market()
 

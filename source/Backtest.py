@@ -149,8 +149,13 @@ class DataReader:
         """
 
 
-def data_writer(self, file_name, data):
-    with open(file_name, 'w', newline='') as csvfile:
+def data_writer(file_name, data, overwrite=True, first_line=None):
+    # 'w' : overwrite the file, 'a' add to the file
+    if overwrite:
+        open_mode = 'w'
+    else:
+        open_mode = 'a'
+    # print(file_name, data)
+    with open(file_name, open_mode, newline='') as csvfile:
         writer = csv.writer(csvfile)
-        for row in data:
-            writer.writerow(row)
+        writer.writerows(data)

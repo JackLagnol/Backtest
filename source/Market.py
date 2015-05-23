@@ -125,7 +125,7 @@ class Prediction:
 
     def __init__(self, asset, evolution, final_term, expert_who_made_it, day_it_was_made, market):
         self.asset = asset
-        self.evolution = evolution  # can be UP, DOWN, or an evolution (ex: -250 for the cac 40)
+        self.evolution = evolution  # can be UP, DOWN for the moment (soon : an evolution (ex: -250 for the cac 40))
         self.expert = expert_who_made_it
         self.day = day_it_was_made
         self.final_term = final_term
