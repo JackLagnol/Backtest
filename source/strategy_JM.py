@@ -162,6 +162,7 @@ def test_the_mobile_expert(number_of_line, number_of_column, first_day, last_day
             if j > i:
                 JMMobile = JMMobileExpert(theBacktest.market, "MobileExpert", longMedian=j + 1, shortMedian=i + 1)
                 theBacktest.simule(first_day=first_day, last_day=last_day, string_mode=False)
+                theBacktest.reset()
                 matrix_of_results[i, j] = JMMobile.results_description()[4]
             else:
                 matrix_of_results[i, j] = 0.5
@@ -465,8 +466,6 @@ if __name__ == "__main__":
     # SPY = theBacktest.add_asset_from_csv("Data/SPY_yahoo.csv", "yahoo", ",", "SPY")
     # IBMyahoo = theBacktest.add_asset_from_csv("Data/IBM_1970_2010_yahoo.csv", "yahoo", ",", "IBM")
     aapl = theBacktest.add_asset_from_csv("Data/MAdata/aapl-30.12.94.csv", "yahoo", ",", "AAPL")
-
-    # Strategies are created
     # randomStrategy = Strategy(theBacktest.market, "Random Srategy", cash=15000)
     # JMstrat = JMTendanceStrat(theBacktest.market, "StupidDetector", cash=15000)
     # firstDayStrat = FirstDayBuyEverythingStrategy(theBacktest.market, "BuyTheFirstDay", asset=aapl, cash=15000)
@@ -475,7 +474,10 @@ if __name__ == "__main__":
     # Experts are created
     # absurdExpert = Expert(theBacktest.market, "AbsurdExpert")
     # TendanceExpert = JMTendanceExpert(theBacktest.market, "TendanceExpert")
-    MobileExpert = JMMobileExpert(theBacktest.market, "MobileExpert", longMedian=200, shortMedian=150)
+    # MobileExpert = JMMobileExpert(theBacktest.market, "MobileExpert", longMedian=20, shortMedian=10)
+
+    print(test_the_mobile_expert(3, 3, 0, 500, print_time=True))
+
 
     # beginning_time = clock()  # for time execution measurement
     # number_of_line = 55  # short median
@@ -498,6 +500,6 @@ if __name__ == "__main__":
     # We plot the assets used
     # theBacktest.market.plot_market()
 
-    theBacktest.simule(string_mode=True)
+    # theBacktest.simule(string_mode=True)
     # theBacktest.simule(first_day=0, last_day=500, string_mode=True)
     # MobileExpert.plot_medians()

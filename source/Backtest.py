@@ -78,7 +78,8 @@ class Backtest:
                 plt.legend(loc=2)
             plt.show(block=True)
 
-        # the market is cleared for another new simulation
+    def reset(self):
+        """Reset the market for an other new simulation """
         self.market.strategyList.clear()
         self.market.portfolioList.clear()
         self.market.predictionList.clear()
@@ -146,3 +147,10 @@ class DataReader:
                 c += [row[0]]
             self.data = c
         """
+
+
+def data_writer(self, file_name, data):
+    with open(file_name, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        for row in data:
+            writer.writerow(row)
