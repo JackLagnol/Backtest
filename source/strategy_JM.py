@@ -3,6 +3,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from scipy import interpolate
 import numpy as np
 from matplotlib.widgets import Slider, RadioButtons
+from os import listdir
 
 
 class JMTendanceStrat(Strategy):
@@ -473,7 +474,8 @@ def write_a_prediction_list_on_file(file_name, prediction_list, format_type=0, o
     data_writer(file_name, data, overwrite=overwrite, first_line=first_line)
 
 
-def test_and_write_several_experts(list_of_medians, file_name, print_time=True, overwrite=True, format_type=0):
+def test_and_write_several_experts(list_of_medians, file_name,
+                                   print_time=True, overwrite=True, format_type=0, asset=None):
     """  """
     if overwrite:
         data_writer(file_name, [])
@@ -481,7 +483,13 @@ def test_and_write_several_experts(list_of_medians, file_name, print_time=True, 
     beginning_time = clock()  # for time execution measurement
     for couple in list_of_medians:
         # print(couple[0])
-        the_expert = JMMobileExpert(theBacktest.market, "MobileExpert", longMedian=couple[0], shortMedian=couple[1])
+
+        if asset is None:
+            the_expert = JMMobileExpert(theBacktest.market, "MobileExpert", longMedian=couple[0], shortMedian=couple[1])
+        else:
+            the_expert = JMMobileExpert(theBacktest.market, "MobileExpert",
+                                        longMedian=couple[0], shortMedian=couple[1], asset=asset)
+
         theBacktest.simule(string_mode=False)
         write_a_prediction_list_on_file(file_name, the_expert.predictionMadeList,
                                         format_type=format_type, overwrite=False)
@@ -503,7 +511,74 @@ if __name__ == "__main__":
     # SPY = theBacktest.add_asset_from_csv("Data/SPY_yahoo.csv", "yahoo", ",", "SPY")
     # IBMyahoo = theBacktest.add_asset_from_csv("Data/IBM_1970_2010_yahoo.csv", "yahoo", ",", "IBM")
     # aapl = theBacktest.add_asset_from_csv("Data/MAdata/aapl-30.12.94.csv", "yahoo", ",", "AAPL")
-    msft = theBacktest.add_asset_from_csv("Data/MAdata/msft-30.12.94.csv", "yahoo", ",", "MSFT")
+    # msft = theBacktest.add_asset_from_csv("Data/MAdata/msft-30.12.94.csv", "yahoo", ",", "MSFT")
+
+    # import dans le market de tous les cours disponibles dans le dossier donne
+
+    assetDirectory = "Data/MAdata/"
+    resultsDirectory = "Results/"
+    nameList = []  # 'human' name of the assets
+    fileList = []  # path file of the assets
+    resultsFileName = []  # path file of the results
+    assetList = []  # list of Asset objects
+    for name in listdir(assetDirectory):
+        temp_name = name.split('-')
+        nameList.append(temp_name[0])
+    fileList = [assetDirectory + file for file in listdir(assetDirectory)]
+    for file in zip(fileList, nameList):  # powerfull function ! fusion list elem by elem
+        assetList.append(theBacktest.add_asset_from_csv(file[0], "yahoo",  ",", file[1]))
+
+
+
+
+
+    list_of_medians = []
+    for i in range(20, 75, 4):
+        for j in range(10, i, 2):
+            list_of_medians.append([i, j])
+    print(len(list_of_medians))
+    for i in range(75, 150, 5):
+        for j in range(10, i, 3):
+            list_of_medians.append([i, j])
+    print(len(list_of_medians))
+    for i in range(150, 300, 10):
+        for j in range(10, i, 5):
+            list_of_medians.append([i, j])
+    print(len(list_of_medians))
+    print(list_of_medians)
+    # plt.plot(*zip(*list_of_medians), marker='x', color='b', ls='')
+    # plt.show()
+
+    resultsFilePrefix = "V0_f2_"  # prefix for the serie of results files created by the simulation
+    resultsFileName = [resultsDirectory + resultsFilePrefix + name + ".csv" for name in nameList]
+    beginning_time = clock()  # for time execution measurement
+    for file in zip(assetList, resultsFileName):
+        test_and_write_several_experts(list_of_medians, file[1],
+                                       print_time=True, overwrite=True, format_type=2, asset=file[0])
+    first_line = "this simulation was made with the following medians in {}s :".format(clock() - beginning_time)
+    data_writer(resultsDirectory + resultsFilePrefix + "readme.txt", list_of_medians, first_line=first_line)
+
+
+
+    resultsFilePrefix = "V0_f0_"  # prefix for the serie of results files created by the simulation
+    resultsFileName = [resultsDirectory + resultsFilePrefix + name + ".csv" for name in nameList]
+    beginning_time = clock()  # for time execution measurement
+    for file in zip(assetList, resultsFileName):
+        test_and_write_several_experts(list_of_medians, file[1],
+                                       print_time=True, overwrite=True, format_type=0, asset=file[0])
+    first_line = "this simulation was made with the following medians in {}s :".format(clock() - beginning_time)
+    data_writer(resultsDirectory + resultsFilePrefix + "readme.txt", list_of_medians, first_line=first_line)
+
+
+
+
+
+
+
+
+
+
+
 
     # randomStrategy = Strategy(theBacktest.market, "Random Srategy", cash=15000)
     # JMstrat = JMTendanceStrat(theBacktest.market, "StupidDetector", cash=15000)
@@ -522,12 +597,14 @@ if __name__ == "__main__":
     # write_a_prediction_list_on_file("Results/test2.csv", MobileExpert.predictionMadeList, format_type=2, overwrite=True)
     # data_writer("Results/test.csv", [["colonne1", "colonne2"], [41, 42, 43]], overwrite=False)
 
-    list_of_medians = []
-    for i in range(20, 201, 5):
-        for j in range(10, min(i-9, 151), 5):
-            list_of_medians.append([i, j])
-    # print("length = ", len(list_of_medians))
-    test_and_write_several_experts(list_of_medians, "Results/test4.csv", print_time=True, overwrite=True, format_type=2)
+
+
+    # list_of_medians = []
+    # for i in range(20, 201, 5):
+    #     for j in range(10, min(i-9, 151), 5):
+    #         list_of_medians.append([i, j])
+    # # print("length = ", len(list_of_medians))
+    # test_and_write_several_experts(list_of_medians, "Results/test4.csv", print_time=True, overwrite=True, format_type=2)
 
 
 

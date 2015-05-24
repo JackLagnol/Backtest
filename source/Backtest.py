@@ -79,7 +79,7 @@ class Backtest:
             plt.show(block=True)
 
     def reset(self):
-        """Reset the market for an other new simulation """
+        """Reset the market for an other new simulation, keep the assets loaded """
         self.market.strategyList.clear()
         self.market.portfolioList.clear()
         self.market.predictionList.clear()
@@ -155,7 +155,10 @@ def data_writer(file_name, data, overwrite=True, first_line=None):
         open_mode = 'w'
     else:
         open_mode = 'a'
+
     # print(file_name, data)
     with open(file_name, open_mode, newline='') as csvfile:
         writer = csv.writer(csvfile)
+        if first_line is not None:
+            writer.writerow([first_line])
         writer.writerows(data)
