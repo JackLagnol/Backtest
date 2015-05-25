@@ -120,6 +120,8 @@ class Prediction:
 
     id: (int) unique id generated using the 'static' variable lastId
     isTrue: (boolean) initially False and turn to True (if is true) by the market when the Prediction is checked
+    final_term: (int) the day ID when the prediction will be verified (and isTrue finally set) NB: not the shift of day!
+    result: (float) yield: asset(final_term)/asset(day_it_was_made)
     """
     lastId = 0
 
@@ -130,6 +132,7 @@ class Prediction:
         self.day = day_it_was_made
         self.final_term = final_term
         self.isTrue = False
+        self.result = -1
 
         self.id = Prediction.lastId
         Prediction.lastId += 1
@@ -411,6 +414,11 @@ class Market:
             if prediction.final_term == self.theDay:
                 asset_before = prediction.asset.data[prediction.day]
                 asset_today = prediction.asset.data[self.theDay]
+
+                # prediction.result is calculated and set
+                prediction.result = asset_today/asset_before
+
+                # prediction.isTrue is calculated and set
                 if prediction.evolution == "UP":
                     if asset_before < asset_today:
                         prediction.isTrue = True

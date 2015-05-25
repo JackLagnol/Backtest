@@ -67,7 +67,13 @@ class JMMobileExpert(Expert):
             del kwargs["predictionTerm"]
             self.predictionTerm = temp_kwargs["predictionTerm"]
         else:
-            self.predictionTerm = temp_kwargs["shortMedian"]
+            self.predictionTerm = math.floor((temp_kwargs["shortMedian"] + temp_kwargs["longMedian"]) / 2)
+
+        if "typeOfPred" in kwargs:
+            del kwargs["typeOfPred"]
+            self.typeOfPred = temp_kwargs["typeOfPred"]
+        else:
+            self.typeOfPred = "UPDOWN"
 
         self.longMedian = temp_kwargs["longMedian"]
         self.shortMedian = temp_kwargs["shortMedian"]
@@ -85,7 +91,6 @@ class JMMobileExpert(Expert):
 
     def new_day(self):
         """ Called each day by the market to ask the expert to make its predictions """
-        pred = ["UP", "DOWN"]
         if self.initialised:
             data = self.market.get_asset_data(self.asset)
 
@@ -107,10 +112,11 @@ class JMMobileExpert(Expert):
             long_sum += data[-1] / self.longMedian  # -1 because i start at 0
             long_sum -= data[-1 - self.longMedian] / self.longMedian  # -1 because i start at 0
 
-            if short_sum > long_sum and self.pastLongSum[-1] > self.pastShortSum[-1]:
+            pred = ["UP", "DOWN"]
+            if short_sum > long_sum and self.pastLongSum[-1] > self.pastShortSum[-1] and "UP" in self.typeOfPred:
                 Prediction(self.asset, pred[0], self.market.theDay + self.predictionTerm,
                            self, self.market.theDay, self.market)
-            elif short_sum < long_sum and self.pastLongSum[-1] < self.pastShortSum[-1]:
+            if short_sum < long_sum and self.pastLongSum[-1] < self.pastShortSum[-1] and "DOWN" in self.typeOfPred:
                 Prediction(self.asset, pred[1], self.market.theDay + self.predictionTerm,
                            self, self.market.theDay, self.market)
 
@@ -150,6 +156,60 @@ class JMMobileExpert(Expert):
     def __repr__(self):
         return "<{0}, long: {1}, short: {2}>".format(self.name, self.longMedian, self.shortMedian)
 
+
+class JMRandomExpert(Expert):
+    def __init__(self, *args, **kwargs):
+        temp_kwargs = kwargs.copy()
+        if "asset" in kwargs:
+            del kwargs["asset"]
+
+        if "predictionTerm" in kwargs:
+            del kwargs["predictionTerm"]
+            self.predictionTerm = temp_kwargs["predictionTerm"]
+        else:
+            self.predictionTerm = 1
+
+        if "numberOfPredictions" in kwargs:
+            del kwargs["numberOfPredictions"]
+
+        if "typeOfPred" in kwargs:
+            del kwargs["typeOfPred"]
+            self.typeOfPred = temp_kwargs["typeOfPred"]
+        else:
+            self.typeOfPred = "UP"
+
+        super().__init__(*args, **kwargs)
+
+        if "asset" in temp_kwargs:
+            self.asset = temp_kwargs["asset"]
+        else:
+            self.asset = self.market.assetList[0]
+
+        self.daysOfPrediction = []
+        if "numberOfPredictions" in temp_kwargs:
+            for i in range(temp_kwargs["numberOfPredictions"]):
+                self.daysOfPrediction.append(random.randint(0, self.asset.length - self.predictionTerm))
+            self.daysOfPrediction.sort()
+            print(self.daysOfPrediction)
+        else:
+            print("!!! WRONG numberOfPredictions FOR JMRandomExpert !!!")
+
+    def new_day(self):
+        """ Called each day by the market to ask the expert to make its predictions """
+        while self.market.theDay in self.daysOfPrediction :
+            pred = ["UP", "DOWN"]
+            if self.typeOfPred == "UPDOWN":
+                typeOfPred = pred[random.randint(0, 1)]
+                print(typeOfPred)
+            else:
+                typeOfPred = self.typeOfPred
+
+            self.daysOfPrediction.remove(self.market.theDay)
+            Prediction(self.asset, typeOfPred, self.market.theDay + self.predictionTerm,
+                       self, self.market.theDay, self.market)
+
+    def __repr__(self):
+        return "<{0}>".format(self.name)
 
 def test_the_mobile_expert(number_of_line, number_of_column, first_day, last_day, print_time=True):
     """ Return the matrix where M(i, j) is the expected value of an MobileExpert which parameters are
@@ -454,7 +514,7 @@ def plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_
 
 
 def write_a_prediction_list_on_file(file_name, prediction_list, format_type=0, overwrite=True, first_line=None):
-    """  """
+    """ Receive a prediction list and write a csv with the results, depending of the format """
     data = []
     for prediction in prediction_list:
         if format_type == 0:  # [long, short, day, isTrue]       without asset
@@ -465,10 +525,21 @@ def write_a_prediction_list_on_file(file_name, prediction_list, format_type=0, o
             data.append([prediction.expert.longMedian, prediction.expert.shortMedian,
                          prediction.asset.name, prediction.day, prediction.isTrue])
 
-    if format_type == 2:  # [long, short, asset, mean, number of prediction]
+    if format_type == 2:  # [long, short, asset, mean of all the prediction, number of prediction]
         mean = [prediction.isTrue for prediction in prediction_list].count(True)/len(prediction_list)
         data.append([prediction_list[0].expert.longMedian, prediction_list[0].expert.shortMedian,
                      prediction_list[0].asset.name, mean, len(prediction_list)])
+
+    if format_type == 3:  # [long, short, asset, list of the results (size varies)]
+        if isinstance(prediction.expert, JMMobileExpert):
+            temp_list = [prediction_list[0].expert.longMedian, prediction_list[0].expert.shortMedian]
+        elif isinstance(prediction.expert, JMRandomExpert):
+            temp_list = [prediction.expert.predictionTerm, len(prediction_list)]
+        else:
+            print("!!! WRONG EXPERT FOR format_type = 3 !!!")
+            return
+        temp_list += [prediction.result for prediction in prediction_list]
+        data.append(temp_list)
         # print(data)
 
     data_writer(file_name, data, overwrite=overwrite, first_line=first_line)
@@ -532,6 +603,8 @@ if __name__ == "__main__":
 
 
 
+
+
     list_of_medians = []
     for i in range(20, 75, 4):
         for j in range(10, i, 2):
@@ -549,30 +622,25 @@ if __name__ == "__main__":
     # plt.plot(*zip(*list_of_medians), marker='x', color='b', ls='')
     # plt.show()
 
-    resultsFilePrefix = "V0_f2_"  # prefix for the serie of results files created by the simulation
-    resultsFileName = [resultsDirectory + resultsFilePrefix + name + ".csv" for name in nameList]
-    beginning_time = clock()  # for time execution measurement
-    for file in zip(assetList, resultsFileName):
-        test_and_write_several_experts(list_of_medians, file[1],
-                                       print_time=True, overwrite=True, format_type=2, asset=file[0])
-    first_line = "this simulation was made with the following medians in {}s :".format(clock() - beginning_time)
-    data_writer(resultsDirectory + resultsFilePrefix + "readme.txt", list_of_medians, first_line=first_line)
-
-
-
-    resultsFilePrefix = "V0_f0_"  # prefix for the serie of results files created by the simulation
-    resultsFileName = [resultsDirectory + resultsFilePrefix + name + ".csv" for name in nameList]
-    beginning_time = clock()  # for time execution measurement
-    for file in zip(assetList, resultsFileName):
-        test_and_write_several_experts(list_of_medians, file[1],
-                                       print_time=True, overwrite=True, format_type=0, asset=file[0])
-    first_line = "this simulation was made with the following medians in {}s :".format(clock() - beginning_time)
-    data_writer(resultsDirectory + resultsFilePrefix + "readme.txt", list_of_medians, first_line=first_line)
-
-
-
-
-
+    # resultsFilePrefix = "V0_f2_"  # prefix for the serie of results files created by the simulation
+    # resultsFileName = [resultsDirectory + resultsFilePrefix + name + ".csv" for name in nameList]
+    # beginning_time = clock()  # for time execution measurement
+    # for file in zip(assetList, resultsFileName):
+    #     test_and_write_several_experts(list_of_medians, file[1],
+    #                                    print_time=True, overwrite=True, format_type=2, asset=file[0])
+    # first_line = "this simulation was made with the following medians in {}s :".format(clock() - beginning_time)
+    # data_writer(resultsDirectory + resultsFilePrefix + "readme.txt", list_of_medians, first_line=first_line)
+    #
+    #
+    #
+    # resultsFilePrefix = "V0_f0_"  # prefix for the serie of results files created by the simulation
+    # resultsFileName = [resultsDirectory + resultsFilePrefix + name + ".csv" for name in nameList]
+    # beginning_time = clock()  # for time execution measurement
+    # for file in zip(assetList, resultsFileName):
+    #     test_and_write_several_experts(list_of_medians, file[1],
+    #                                    print_time=True, overwrite=True, format_type=0, asset=file[0])
+    # first_line = "this simulation was made with the following medians in {}s :".format(clock() - beginning_time)
+    # data_writer(resultsDirectory + resultsFilePrefix + "readme.txt", list_of_medians, first_line=first_line)
 
 
 
@@ -588,9 +656,11 @@ if __name__ == "__main__":
     # Experts are created
     # absurdExpert = Expert(theBacktest.market, "AbsurdExpert")
     # TendanceExpert = JMTendanceExpert(theBacktest.market, "TendanceExpert")
-    # MobileExpert = JMMobileExpert(theBacktest.market, "MobileExpert", longMedian=20, shortMedian=10)
+    MobileExpert = JMMobileExpert(theBacktest.market, "MobileExpert", longMedian=20, shortMedian=10, typeOfPred="DOWN")
+    RandomExpert = JMRandomExpert(theBacktest.market, "RandomExpert",
+                                  numberOfPredictions=2, predictionTerm=18, typeOfPred="UP")
 
-    # theBacktest.simule(string_mode=True)
+    theBacktest.simule(string_mode=True)
     # theBacktest.reset()
 
     # print(theBacktest.market.expertList[0].predictionMadeList)
@@ -607,6 +677,8 @@ if __name__ == "__main__":
     # test_and_write_several_experts(list_of_medians, "Results/test4.csv", print_time=True, overwrite=True, format_type=2)
 
 
+    write_a_prediction_list_on_file("Results/test2.csv", MobileExpert.predictionMadeList, format_type=3, overwrite=False)
+    write_a_prediction_list_on_file("Results/test2.csv", RandomExpert.predictionMadeList, format_type=3, overwrite=False)
 
 
 
@@ -636,7 +708,7 @@ if __name__ == "__main__":
 
 
 
-# may be useful part of cade
+# may be useful part of code
     # We plot the assets used
     # theBacktest.market.plot_market()
 
