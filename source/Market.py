@@ -141,7 +141,7 @@ class Prediction:
         # print(self.__repr__())
 
     def __repr__(self):
-        return "<Prediction of asset : {0}, the theDay {1}, evolution : {2}>".format(self.asset.name,
+        return "<Prediction {} of asset : {}, the theDay {}, evolution : {}>".format(self.id, self.asset.name,
                                                                                      self.day, self.evolution)
 
 
@@ -410,7 +410,8 @@ class Market:
         for expert in self.expertList:
             expert.new_day()
 
-        for prediction in self.predictionList:
+        # iterating on a copy is *necessary*, elements may be skipped otherwise
+        for prediction in self.predictionList[:]:
             if prediction.final_term == self.theDay:
                 asset_before = prediction.asset.data[prediction.day]
                 asset_today = prediction.asset.data[self.theDay]
@@ -429,6 +430,7 @@ class Market:
                     print("!!! NOT YET IMPLEMENTED !!!")
                 else:
                     print("!!! WRONG FORMAT FOR PREDICTION !!!")
+
                 prediction.expert.prediction_result(prediction)
                 self.predictionList.remove(prediction)
 
