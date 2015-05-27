@@ -531,12 +531,13 @@ def plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_
 def write_a_prediction_list_on_file(file_name, prediction_list, format_type=0, overwrite=True, first_line=None):
     """ Receive a prediction list and write a csv with the results, depending of the format """
     data = []
-    for prediction in prediction_list:
-        if format_type == 0:  # [long, short, day, isTrue]       without asset
+    if format_type == 0:  # [long, short, day, isTrue]       without asset
+        for prediction in prediction_list:
             data.append([prediction.expert.longMedian, prediction.expert.shortMedian,
                          prediction.day, prediction.isTrue])
 
-        if format_type == 1:  # [long, short, asset, day, isTrue]
+    if format_type == 1:  # [long, short, asset, day, isTrue]
+        for prediction in prediction_list:
             data.append([prediction.expert.longMedian, prediction.expert.shortMedian,
                          prediction.asset.name, prediction.day, prediction.isTrue])
 
@@ -546,16 +547,20 @@ def write_a_prediction_list_on_file(file_name, prediction_list, format_type=0, o
                      prediction_list[0].asset.name, mean, len(prediction_list)])
 
     if format_type == 3:  # [long, short, list of the results (size varies)] or [predictionTerm, nbOfPred, ... for Rand
-        if isinstance(prediction.expert, JMMobileExpert):
-            temp_list = [prediction_list[0].expert.longMedian, prediction_list[0].expert.shortMedian]
-        elif isinstance(prediction.expert, JMRandomExpert):
-            temp_list = [prediction.expert.predictionTerm, len(prediction_list)]
+        if len(prediction_list) > 0:
+            if isinstance(prediction_list[0].expert, JMMobileExpert):
+                temp_list = [prediction_list[0].expert.longMedian, prediction_list[0].expert.shortMedian]
+            elif isinstance(prediction_list[0].expert, JMRandomExpert):
+                temp_list = [prediction_list[0].expert.predictionTerm, len(prediction_list)]
+            else:
+                print("!!! WRONG EXPERT FOR format_type = 3 !!!")
+                return
+            temp_list += [prediction.result for prediction in prediction_list]
+            data.append(temp_list)
+            # print(data)
         else:
-            print("!!! WRONG EXPERT FOR format_type = 3 !!!")
-            return
-        temp_list += [prediction.result for prediction in prediction_list]
-        data.append(temp_list)
-        # print(data)
+            temp_list = ["NO PREDICTION", "FOR THIS COUPLE"]
+            data.append(temp_list)
 
     data_writer(file_name, data, overwrite=overwrite, first_line=first_line)
 
@@ -623,7 +628,7 @@ if __name__ == "__main__":
 
     # import dans le market de tous les cours disponibles dans le dossier donne
     assetDirectory = "Data/MAdata95/"
-    nameOfTheSimulation = "S0"
+    nameOfTheSimulation = "S1_95"
     numberOfStep = 4
 
     nameList = []  # 'human' name of the assets
@@ -633,7 +638,7 @@ if __name__ == "__main__":
     rawFileList = listdir(assetDirectory)
 
     # debug mode
-    # rawFileList = [rawFileList[0]]
+    # rawFileList = [rawFileList[3]]
     #
 
     for name in rawFileList:
@@ -673,6 +678,7 @@ if __name__ == "__main__":
         for j in range(10, i-40, 5):
             list_of_medians.append([i, j])
     print(len(list_of_medians))
+
     # print(list_of_medians)
     # plt.plot(*zip(*list_of_medians), marker='x', color='b', ls='')
     # plt.show()
@@ -701,7 +707,7 @@ if __name__ == "__main__":
                                                                   (clock()-all_beginning_time)/(i+1)*(numberOfStep-i-1)))
 
     first_line = "this simulation was made with the following medians in {}s :".format(clock() - all_beginning_time)
-    data_writer(resultsDirectory + filePrefix + "readme.txt", list_of_medians, first_line=first_line)
+    data_writer(resultsDirectory + nameOfTheSimulation + "/" + filePrefix + "readme.txt", list_of_medians, first_line=first_line)
 
 
 
