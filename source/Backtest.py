@@ -111,7 +111,7 @@ class DataReader:
 
         elif sort_type == "yahoo":  # G : get adjusted close data from csv (date, open, high, low, close, adjclose)
             temp_data = []
-            self.data = self.data[1:]
+            self.data = self.data[1:]  # delete the first line
             # reverse the order of the data (the oldest become the last ones)
             for i in range(len(self.data)):
                 temp_data += [self.data[-i-1]]
@@ -124,7 +124,7 @@ class DataReader:
 
         elif sort_type == "ltc":  # G : get adjusted close data from csv (date, open, high, low, close, adjclose)
             temp_data = []
-            self.data = self.data[1:]
+            self.data = self.data[1:]  # delete the first line
             # reverse the order of the data (the oldest become the last ones)
             for i in range(len(self.data)):
                 temp_data += [self.data[-i-1]]
@@ -135,18 +135,7 @@ class DataReader:
                 temp_data += [float(row[4])]
             self.data = temp_data
 
-        """ Not necessary for the moment (see also in Backtest)
-        elif sort_type == "time":  # time for yahoo finance
-            c = []
-            self.data = self.data[1:]
-            for i in range(len(self.data)):
-                c += [self.data[-i-1]]
-            self.data = c
-            c = []
-            for row in self.data:
-                c += [row[0]]
-            self.data = c
-        """
+
 
 
 def data_writer(file_name, data, overwrite=True, first_line=None):

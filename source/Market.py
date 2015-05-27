@@ -552,10 +552,15 @@ class Market:
         self.predictionList.append(prediction)
         # print("prediction registered")
 
-    def plot_market(self):
+    def plot_market(self, asset=None):
         """ Plot all assets imported """
-        for asset in self.assetList:
+        if asset is None:
+            for asset in self.assetList:
+                plt.plot(asset.data)
+                plt.title(asset.name)
+        else:
             plt.plot(asset.data)
+            plt.title(asset.name)
         plt.show()
 
     def get_asset_data(self, asset, start=0):
