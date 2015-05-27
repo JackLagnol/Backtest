@@ -172,6 +172,12 @@ class JMRandomExpert(Expert):
         if "numberOfPredictions" in kwargs:
             del kwargs["numberOfPredictions"]
 
+        if "first_day" in kwargs:
+            del kwargs["first_day"]
+
+        if "last_day" in kwargs:
+            del kwargs["last_day"]
+
         if "typeOfPred" in kwargs:
             del kwargs["typeOfPred"]
             self.typeOfPred = temp_kwargs["typeOfPred"]
@@ -185,11 +191,20 @@ class JMRandomExpert(Expert):
         else:
             self.asset = self.market.assetList[0]
 
+
         self.daysOfPrediction = []
         if "numberOfPredictions" in temp_kwargs:
+            first_day = 0
+            last_day = self.market.maximumDay
+            if "first_day" in temp_kwargs and temp_kwargs["first_day"] is not None:
+                first_day = temp_kwargs["first_day"]
+            if "last_day" in temp_kwargs and temp_kwargs["last_day"] is not None:
+                last_day = temp_kwargs["last_day"]
+            # print("Random :", first_day, last_day)
+
             for i in range(temp_kwargs["numberOfPredictions"]):
                 # randint(a, b) include b, maximumDay starts at 0
-                self.daysOfPrediction.append(random.randint(0, self.market.maximumDay - self.predictionTerm))
+                self.daysOfPrediction.append(random.randint(first_day, last_day - self.predictionTerm))
             self.daysOfPrediction.sort()
         else:
             print("!!! WRONG numberOfPredictions FOR JMRandomExpert !!!")
@@ -548,7 +563,7 @@ def write_a_prediction_list_on_file(file_name, prediction_list, format_type=0, o
 def test_and_write_several_experts(list_of_medians, file_name,
                                    print_time=True, overwrite=True, format_type=0, asset=None, randomReference=True,
                                    typeOfPred="UP", random_file_name="default_random_file.csv",
-                                   numberOfRandPredictions=200):
+                                   numberOfRandPredictions=200, first_day=None, last_day=None):
     """  """
     if overwrite:
         data_writer(file_name, [])
@@ -566,9 +581,9 @@ def test_and_write_several_experts(list_of_medians, file_name,
         if randomReference:
             the_rand_expert = JMRandomExpert(theBacktest.market, "RandomExpert",  asset=asset,
                                              numberOfPredictions=numberOfRandPredictions, predictionTerm=temp_prediction_term,
-                                             typeOfPred=typeOfPred)
+                                             typeOfPred=typeOfPred, first_day=first_day, last_day=last_day)
 
-        theBacktest.simule(string_mode=False)
+        theBacktest.simule(string_mode=False, first_day=first_day, last_day=last_day)
 
         write_a_prediction_list_on_file(file_name, the_expert.predictionMadeList,
                                         format_type=format_type, overwrite=False)
@@ -581,14 +596,14 @@ def test_and_write_several_experts(list_of_medians, file_name,
         if print_time:
             i += 1
             j += 1
-            if i == 50:
+            if i == 100:
                 i = 0
                 remaining_time = (clock()-beginning_time)*(len(list_of_medians)-j)/j
-                print("{:.1f}% done, still {:.1f}s for ".format(100*j/len(list_of_medians), remaining_time),
+                print("{:.1f}% done, still {:.1f}s for".format(100*j/len(list_of_medians), remaining_time),
                       the_expert.asset.name)
         theBacktest.reset()
     if print_time:
-        print(asset, (clock() - beginning_time), "s")
+        print("End of {} in {:.1f}s".format(asset.name, clock() - beginning_time))
 
 if __name__ == "__main__":
     # An instance of Backtest is created
@@ -607,12 +622,13 @@ if __name__ == "__main__":
     # msft = theBacktest.add_asset_from_csv("Data/MAdata/msft-30.12.94.csv", "yahoo", ",", "MSFT")
 
     # import dans le market de tous les cours disponibles dans le dossier donne
-    assetDirectory = "Data/MAdata00/"
+    assetDirectory = "Data/MAdata95/"
     nameOfTheSimulation = "S0"
+    numberOfStep = 4
 
     nameList = []  # 'human' name of the assets
     fileList = []  # path file of the assets
-    realFileName = []  # path file of the results
+    realFileNameNoExtension = []  # path file of the results
     assetList = []  # list of Asset objects
     rawFileList = listdir(assetDirectory)
 
@@ -640,40 +656,65 @@ if __name__ == "__main__":
 
     filePrefix = ""  # prefix for the serie of results files created by the simulation
     randomFileSuffix = "_rand"  # prefix for the serie of results files created by the simulation
-    realFileName = [realDirectory + filePrefix + name + ".csv" for name in nameList]
-    randomFileName = [randomDirectory + filePrefix + name + randomFileSuffix + ".csv" for name in nameList]
+    realFileNameNoExtension = [realDirectory + filePrefix + name for name in nameList]
+    randomFileNameNoExtension = [randomDirectory + filePrefix + name + randomFileSuffix for name in nameList]
 
 
     list_of_medians = []
-    for i in range(20, 25, 4):
+    for i in range(20, 75, 4):
         for j in range(10, i-7, 2):
             list_of_medians.append([i, j])
     print("Number of couples tested:", len(list_of_medians))
-    # for i in range(75, 150, 5):
-    #     for j in range(10, i-20, 3):
-    #         list_of_medians.append([i, j])
-    # print(len(list_of_medians))
-    # for i in range(150, 300, 10):
-    #     for j in range(10, i-40, 7):
-    #         list_of_medians.append([i, j])
-    # print(len(list_of_medians))
+    for i in range(75, 150, 4):
+        for j in range(10, i-10, 2):
+            list_of_medians.append([i, j])
+    print(len(list_of_medians))
+    for i in range(150, 250, 5):
+        for j in range(10, i-40, 5):
+            list_of_medians.append([i, j])
+    print(len(list_of_medians))
     # print(list_of_medians)
     # plt.plot(*zip(*list_of_medians), marker='x', color='b', ls='')
     # plt.show()
 
-    beginning_time = clock()  # for time execution measurement
-    for file in zip(assetList, realFileName, randomFileName):
-        test_and_write_several_experts(list_of_medians, file[1],
-                                       print_time=True, overwrite=True,
-                                       format_type=3, asset=file[0], randomReference=True,
-                                       random_file_name=file[2], numberOfRandPredictions=200)
+    nomberOfDays = min([asset.length for asset in assetList])
+    numberOfDaysInStep = math.floor(nomberOfDays/numberOfStep)
+    # print(nomberOfDays, numberOfStep, numberOfDaysInStep*numberOfStep)
+    all_beginning_time = clock()  # for time execution measurement
+    for i in range(numberOfStep):
+        first_day = numberOfDaysInStep*i
+        last_day = numberOfDaysInStep*(i+1)-1
+        print("=============== STEP {}/{} ===============".format(i+1, numberOfStep))
+        print("         day {} -> {}".format(first_day, last_day))
+        beginning_time = clock()  # for time execution measurement
+        realFileName = [file + "_{}.csv".format(i+1) for file in realFileNameNoExtension]
+        randomFileName = [file + "_{}.csv".format(i+1) for file in randomFileNameNoExtension]
+        # print(randomFileName, realFileName)
 
-    first_line = "this simulation was made with the following medians in {}s :".format(clock() - beginning_time)
+        for file in zip(assetList, realFileName, randomFileName):
+            test_and_write_several_experts(list_of_medians, file[1],
+                                           print_time=True, overwrite=True,
+                                           format_type=3, asset=file[0], randomReference=True,
+                                           random_file_name=file[2], numberOfRandPredictions=200,
+                                           first_day=first_day, last_day=last_day)
+        print("--- Step done in {:.1f}s, still {:.1f}s ---".format(clock()-beginning_time,
+                                                                  (clock()-all_beginning_time)/(i+1)*(numberOfStep-i-1)))
+
+    first_line = "this simulation was made with the following medians in {}s :".format(clock() - all_beginning_time)
     data_writer(resultsDirectory + filePrefix + "readme.txt", list_of_medians, first_line=first_line)
 
 
 
 
+    # beginning_time = clock()  # for time execution measurement
+    # for file in zip(assetList, realFileName, randomFileName):
+    #     test_and_write_several_experts(list_of_medians, file[1],
+    #                                    print_time=True, overwrite=True,
+    #                                    format_type=3, asset=file[0], randomReference=True,
+    #                                    random_file_name=file[2], numberOfRandPredictions=200)
+    #
+    # first_line = "this simulation was made with the following medians in {}s :".format(clock() - beginning_time)
+    # data_writer(resultsDirectory + filePrefix + "readme.txt", list_of_medians, first_line=first_line)
 
     # randomStrategy = Strategy(theBacktest.market, "Random Srategy", cash=15000)
     # JMstrat = JMTendanceStrat(theBacktest.market, "StupidDetector", cash=15000)

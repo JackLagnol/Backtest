@@ -21,28 +21,20 @@ class Backtest:
         self.market.register_asset(the_asset)
         return the_asset
 
-    """ Not necessary for the moment (see also in DataReader, sort type = time
-    def add_time_from_csv(self, path_name, sort_type=0): #G ; get actual time
-        data_reader = DataReader()
-        data_reader.open_csv(path_name)
-        data_reader.clean_data(sort_type)
-        self.market.add_time(data_reader.data)
-    """
-
     def simule(self, string_mode=True, **kwargs):
         """ Called to simulate a market from the day 0 (or first_day included if given in the parameters)
         to the last day (or the last_day included given in the parameters) """
 
         beginning_time = clock()  # for time execution measurement
 
-        if "last_day" in kwargs:
+        if "last_day" in kwargs and kwargs["last_day"] is not None:
             last_day = min(self.market.maximumDay, kwargs["last_day"])
             if self.market.maximumDay < kwargs["last_day"]:
                 print("-!- PARAM last_day TOO BIG: {} in simule -!-".format(last_day))
         else:
             last_day = self.market.maximumDay
 
-        if "first_day" in kwargs:
+        if "first_day" in kwargs and kwargs["first_day"] is not None:
             first_day = min(last_day, kwargs["first_day"])
         else:
             first_day = 0
