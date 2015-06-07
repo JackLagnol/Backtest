@@ -21,7 +21,7 @@ class Backtest:
         self.market.register_asset(the_asset)
         return the_asset
 
-    def simule(self, string_mode=True, **kwargs):
+    def simule(self, string_mode=True, plot_mode=True, **kwargs):
         """ Called to simulate a market from the day 0 (or first_day included if given in the parameters)
         to the last day (or the last_day included given in the parameters) """
 
@@ -68,7 +68,8 @@ class Backtest:
             print("######                   ENDS OF THE RESULTS                   ######")
             if len(self.market.portfolioList) > 0:
                 plt.legend(loc=2)
-            plt.show(block=True)
+            if plot_mode:
+                plt.show(block=True)
 
     def reset(self):
         """Reset the market for an other new simulation, keep the assets loaded """
