@@ -6,6 +6,8 @@ from matplotlib.widgets import Slider, RadioButtons
 from os import listdir, makedirs
 
 
+# STRATEGIES
+
 class JMTendanceStrat(Strategy):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -35,6 +37,8 @@ class JMTestStrat(Strategy):
         if self.market.theDay == 5:
             self.market.close(self.portfolio.openPositionList[0])
 
+
+# EXPERTS
 
 class JMTendanceExpert(Expert):
     def __init__(self, *args, **kwargs):
@@ -141,11 +145,13 @@ class JMMobileExpert(Expert):
             self.pastShortSum.append(short_sum)
 
     def plot_medians(self):
-        size = min(len(self.pastShortSum) + self.longMedian - 1, len(self.asset.data) - 1)
+        size = min(len(self.pastShortSum) + self.longMedian - 1, len(self.asset.data))
         x = list(range(size))
         translation_list = [None] * (self.longMedian - 1)
         translated_short = translation_list + self.pastShortSum
         translated_long = translation_list + self.pastLongSum
+
+        # print(len(translated_short), len(translated_long), len(x))
 
         plt.plot(x, translated_short, label="Short Median")
         plt.plot(x, translated_long, label="Long Median")
@@ -225,6 +231,9 @@ class JMRandomExpert(Expert):
 
     def __repr__(self):
         return "<{0}>".format(self.name)
+
+
+# SIMULATION FUNCTION V1
 
 def test_the_mobile_expert(number_of_line, number_of_column, first_day, last_day, print_time=True):
     """ Return the matrix where M(i, j) is the expected value of an MobileExpert which parameters are
@@ -528,6 +537,8 @@ def plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_
         plt.show(block=True)
 
 
+# SIMULATION FUNCTION V2
+
 def write_a_prediction_list_on_file(file_name, prediction_list, format_type=0, overwrite=True, first_line=None):
     """ Receive a prediction list and write a csv with the results, depending of the format """
     data = []
@@ -548,18 +559,37 @@ def write_a_prediction_list_on_file(file_name, prediction_list, format_type=0, o
 
     if format_type == 3:  # [long, short, list of the results (size varies)] or [predictionTerm, nbOfPred, ... for Rand
         if len(prediction_list) > 0:
-            if isinstance(prediction_list[0].expert, JMMobileExpert):
-                temp_list = [prediction_list[0].expert.longMedian, prediction_list[0].expert.shortMedian]
-            elif isinstance(prediction_list[0].expert, JMRandomExpert):
-                temp_list = [prediction_list[0].expert.predictionTerm, len(prediction_list)]
+            # for list taken from experts
+            if isinstance(prediction_list[0], Prediction):
+                if isinstance(prediction_list[0].expert, JMMobileExpert):
+                    temp_list = [prediction_list[0].expert.longMedian, prediction_list[0].expert.shortMedian]
+                elif isinstance(prediction_list[0].expert, JMRandomExpert):
+                    temp_list = [prediction_list[0].expert.predictionTerm, len(prediction_list)]
+            # for list taken from strategies
+            elif isinstance(prediction_list[0], Position):
+                temp_list = [prediction_list[0].portfolio.name, len(prediction_list)]
             else:
-                print("!!! WRONG EXPERT FOR format_type = 3 !!!")
+                print("!!! WRONG EXPERT FOR format_type = 3 !!! Type:", type(prediction_list[0]))
                 return
             temp_list += [prediction.result for prediction in prediction_list]
             data.append(temp_list)
             # print(data)
         else:
             temp_list = ["NO PREDICTION", "FOR THIS COUPLE"]
+            data.append(temp_list)
+
+    if format_type == 4:  # [long, short, length of the position (size varies)] FOR POSITION (strategies)
+        if len(prediction_list) > 0:
+            if isinstance(prediction_list[0], Position):
+                temp_list = [prediction_list[0].portfolio.name, len(prediction_list)]
+            else:
+                print("!!! WRONG EXPERT FOR format_type = 4 !!! Type:", type(prediction_list[0]))
+                return
+            temp_list += [position.closeTrade.day - position.openTrade.day for position in prediction_list]
+            data.append(temp_list)
+            # print(data)
+        else:
+            temp_list = ["NO POSITION", "FOR THIS COUPLE"]
             data.append(temp_list)
 
     data_writer(file_name, data, overwrite=overwrite, first_line=first_line)
@@ -621,28 +651,15 @@ def test_and_write_several_experts(list_of_medians, file_name,
         print("End of {} in {:.1f}s with the prediction type '{}'".format(asset.name, clock() - beginning_time,
                                                                         prediction_term_type))
 
-if __name__ == "__main__":
-    # An instance of Backtest is created
-    theBacktest = Backtest()
+def do_a_full_expert_simulation(assetDirectory, nameOfTheSimulation, numberOfStep, typeOfPred, prediction_term_type):
 
-    # Assets are added to the Backtest
-    # DENTS = theBacktest.add_asset_from_csv("Data/uniformtest.csv", "propre", ";", "DENTS")
-    # STUP = theBacktest.add_asset_from_csv("Data/stupidtest.csv", "propre", ";", "STUP")
-    # BTCUSD = theBacktest.add_asset_from_csv("Data/BTCUSD_propre.csv", "propre", ";", "BTCUSD")
-    # IBM = theBacktest.add_asset_from_csv("Data/ibm_propre.csv", "propre", ";", "IBM")
-    # GS = theBacktest.add_asset_from_csv("Data/GS_yahoo.csv", "yahoo", ",", "GS")
-    # IGE = theBacktest.add_asset_from_csv("Data/IGE_yahoo.csv", "yahoo", ",", "IGE")
-    # SPY = theBacktest.add_asset_from_csv("Data/SPY_yahoo.csv", "yahoo", ",", "SPY")
-    # IBMyahoo = theBacktest.add_asset_from_csv("Data/IBM_1970_2010_yahoo.csv", "yahoo", ",", "IBM")
-    # aapl = theBacktest.add_asset_from_csv("Data/MAdata/aapl-30.12.94.csv", "yahoo", ",", "AAPL")
-    # msft = theBacktest.add_asset_from_csv("Data/MAdata/msft-30.12.94.csv", "yahoo", ",", "MSFT")
+    print("******************** Beggining of the 'do_a_full_expert_simulation' ********************")
 
-    # import dans le market de tous les cours disponibles dans le dossier donne
-    assetDirectory = "Data/MAdata00/"  # example: "Data/MAdata00/"
-    nameOfTheSimulation = "S3_down_short_00"
-    numberOfStep = 4
-    typeOfPred = "DOWN"  # can be UP DOWN UPDOWN
-    prediction_term_type = "short"  # can be short long median
+    assetDirectory = assetDirectory
+    nameOfTheSimulation = nameOfTheSimulation
+    numberOfStep = numberOfStep
+    typeOfPred = typeOfPred
+    prediction_term_type = prediction_term_type
 
     nameList = []  # 'human' name of the assets
     fileList = []  # path file of the assets
@@ -677,20 +694,20 @@ if __name__ == "__main__":
     realFileNameNoExtension = [realDirectory + filePrefix + name for name in nameList]
     randomFileNameNoExtension = [randomDirectory + filePrefix + name + randomFileSuffix for name in nameList]
 
+
     list_of_medians = []
     for i in range(20, 75, 4):
         for j in range(10, i-7, 2):
             list_of_medians.append([i, j])
     print(len(list_of_medians))
-    for i in range(75, 150, 4):
-        for j in range(10, i-10, 2):
-            list_of_medians.append([i, j])
-    print(len(list_of_medians))
-    for i in range(150, 250, 5):
-        for j in range(10, i-40, 5):
-            list_of_medians.append([i, j])
+    # for i in range(75, 150, 4):
+    #     for j in range(10, i-10, 2):
+    #         list_of_medians.append([i, j])
+    # print(len(list_of_medians))
+    # for i in range(150, 250, 5):
+    #     for j in range(10, i-40, 5):
+    #         list_of_medians.append([i, j])
     print("Number of couples tested:", len(list_of_medians))
-
 
     # print(list_of_medians)
     # plt.plot(*zip(*list_of_medians), marker='x', color='b', ls='')
@@ -720,9 +737,72 @@ if __name__ == "__main__":
         print("--- Step done in {:.1f}s, still {:.1f}s ---".format(clock()-beginning_time,
                                                                   (clock()-all_beginning_time)/(i+1)*(numberOfStep-i-1)))
 
-    first_line = "this simulation was made with the following medians in {:.1f}s :".format(clock() - all_beginning_time)
+    first_line = "this simulation was made with the following " \
+                 "medians in {:.1f}s in {} steps and {} prediction with a {} term:".format(clock() - all_beginning_time,
+                                                                                           numberOfStep, typeOfPred,
+                                                                                           prediction_term_type)
+
     data_writer(resultsDirectory + nameOfTheSimulation + "/" + filePrefix + "readme.txt", list_of_medians, first_line=first_line)
 
+    print(first_line, "- median not printed (too long)")
+    print("******************** End of the 'do_a_full_expert_simulation' ********************\n")
+
+
+# MAIN !
+
+if __name__ == "__main__":
+    # An instance of Backtest is created
+    theBacktest = Backtest()
+
+    # ---------------------------------------------------------- #
+    # ----------------- SIMULATION FUNCTION V2 ----------------- #
+    # ---------------------------------------------------------- #
+
+    # assetDirectory = "Data/MAdata00/"  # example: "Data/MAdata00/"
+    # nameOfTheSimulation = "S3_down_short_00"
+    # numberOfStep = 4
+    # typeOfPred = "DOWN"  # can be UP DOWN UPDOWN
+    # prediction_term_type = "short"  # can be short long median
+    #
+    # do_a_full_expert_simulation(assetDirectory, nameOfTheSimulation, numberOfStep, typeOfPred, prediction_term_type):
+
+    # do_a_full_expert_simulation("Data/MAdata00/", "S3_down_long_00", 4, "DOWN", "long")
+    # do_a_full_expert_simulation("Data/MAdata00/", "S3_up_long_00", 4, "UP", "long")
+    # do_a_full_expert_simulation("Data/MAdata00/", "S3_down_short_00", 4, "DOWN", "short")
+    # do_a_full_expert_simulation("Data/MAdata00/", "S3_up_short_00", 4, "UP", "short")
+    # do_a_full_expert_simulation("Data/MAdata00/", "S3_down_short_00", 4, "DOWN", "median")
+    # do_a_full_expert_simulation("Data/MAdata00/", "S3_up_short_00", 4, "UP", "median")
+    #
+    # do_a_full_expert_simulation("Data/MAdata95/", "S3_down_long_95", 4, "DOWN", "long")
+    # do_a_full_expert_simulation("Data/MAdata95/", "S3_up_long_95", 4, "UP", "long")
+    # do_a_full_expert_simulation("Data/MAdata95/", "S3_down_short_95", 4, "DOWN", "short")
+    # do_a_full_expert_simulation("Data/MAdata95/", "S3_up_short_95", 4, "UP", "short")
+    # do_a_full_expert_simulation("Data/MAdata95/", "S3_down_short_95", 4, "DOWN", "median")
+    # do_a_full_expert_simulation("Data/MAdata95/", "S3_up_short_95", 4, "UP", "median")
+
+    # ---------------------------------------------------------- #
+    # -------------- END : SIMULATION FUNCTION V2 -------------- #
+    # ---------------------------------------------------------- #
+
+
+
+
+
+    # ---------------------------------------------------------- #
+    # --------------- MANUAL SIMULATION FUNCTION --------------- #
+    # ---------------------------------------------------------- #
+
+    # Assets are added to the Backtest
+    # DENTS = theBacktest.add_asset_from_csv("Data/uniformtest.csv", "propre", ";", "DENTS")
+    # STUP = theBacktest.add_asset_from_csv("Data/stupidtest.csv", "propre", ";", "STUP")
+    # BTCUSD = theBacktest.add_asset_from_csv("Data/BTCUSD_propre.csv", "propre", ";", "BTCUSD")
+    # IBM = theBacktest.add_asset_from_csv("Data/ibm_propre.csv", "propre", ";", "IBM")
+    # GS = theBacktest.add_asset_from_csv("Data/GS_yahoo.csv", "yahoo", ",", "GS")
+    # IGE = theBacktest.add_asset_from_csv("Data/IGE_yahoo.csv", "yahoo", ",", "IGE")
+    # SPY = theBacktest.add_asset_from_csv("Data/SPY_yahoo.csv", "yahoo", ",", "SPY")
+    IBMyahoo = theBacktest.add_asset_from_csv("Data/IBM_1970_2010_yahoo.csv", "yahoo", ",", "IBM")
+    # aapl = theBacktest.add_asset_from_csv("Data/MAdata95/aapl-03.01.95.csv", "yahoo", ",", "AAPL")
+    # msft = theBacktest.add_asset_from_csv("Data/MAdata95/msft-03.01.95.csv", "yahoo", ",", "MSFT")
 
 
 
@@ -736,7 +816,7 @@ if __name__ == "__main__":
     # first_line = "this simulation was made with the following medians in {}s :".format(clock() - beginning_time)
     # data_writer(resultsDirectory + filePrefix + "readme.txt", list_of_medians, first_line=first_line)
 
-    # randomStrategy = Strategy(theBacktest.market, "Random Srategy", cash=15000)
+    randomStrategy = Strategy(theBacktest.market, "Random Srategy", cash=15000)
     # JMstrat = JMTendanceStrat(theBacktest.market, "StupidDetector", cash=15000)
     # firstDayStrat = FirstDayBuyEverythingStrategy(theBacktest.market, "BuyTheFirstDay", asset=aapl, cash=15000)
     # JMstratTest = JMTestStrat(theBacktest.market, "TestStrat", cash=15000)
@@ -748,32 +828,22 @@ if __name__ == "__main__":
     # RandomExpert = JMRandomExpert(theBacktest.market, "RandomExpert",
     #                               numberOfPredictions=2, predictionTerm=18, typeOfPred="UP")
     #
-    # theBacktest.simule(string_mode=True)
-    # theBacktest.reset()
+    theBacktest.simule(string_mode=False, first_day=20, last_day=200)
+    # print([position.result for position in randomStrategy.portfolio.closePositionList])
+    # print([position.closeTrade.day - position.openTrade.day for position in randomStrategy.portfolio.closePositionList])
+    write_a_prediction_list_on_file("Results/test.csv", randomStrategy.portfolio.closePositionList,
+                                    format_type=4, overwrite=True, first_line=None)
 
-    # print(theBacktest.market.expertList[0].predictionMadeList)
-    # write_a_prediction_list_on_file("Results/test2.csv", MobileExpert.predictionMadeList, format_type=2, overwrite=True)
-    # data_writer("Results/test.csv", [["colonne1", "colonne2"], [41, 42, 43]], overwrite=False)
-
-
-
-    # list_of_medians = []
-    # for i in range(20, 201, 5):
-    #     for j in range(10, min(i-9, 151), 5):
-    #         list_of_medians.append([i, j])
-    # # print("length = ", len(list_of_medians))
-    # test_and_write_several_experts(list_of_medians, "Results/test4.csv", print_time=True, overwrite=True, format_type=2)
-
-
-    # write_a_prediction_list_on_file("Results/test2.csv", MobileExpert.predictionMadeList, format_type=3, overwrite=False)
-    # write_a_prediction_list_on_file("Results/test2.csv", RandomExpert.predictionMadeList, format_type=3, overwrite=False)
+    # print(len(JMstrat.portfolio.closePositionList))
+    # MobileExpert.plot_medians()
+    theBacktest.reset()
 
 
 
 
-
-
-# Code used to directly test several MMexpert
+    # ---------------------------------------------------------- #
+    # ----------------- SIMULATION FUNCTION V1 ----------------- #
+    # ---------------------------------------------------------- #
 
     # print(test_the_mobile_expert(3, 3, 0, 500, print_time=True))
 
@@ -793,10 +863,13 @@ if __name__ == "__main__":
     # plot_the_mobile_expert(number_of_line, number_of_column, list_of_results[i], plot_type="3D")
     # plot_several_matrix(number_of_line, number_of_column, list_of_results, plot_type="3D+", interpolation="nearest")
 
+    # ---------------------------------------------------------- #
+    # -------------- END : SIMULATION FUNCTION V1 -------------- #
+    # ---------------------------------------------------------- #
 
 
 
-# may be useful part of code
+    # may be useful part of code
     # We plot the assets used
     # theBacktest.market.plot_market()
 

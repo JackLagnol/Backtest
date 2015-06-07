@@ -58,6 +58,7 @@ class Position:
     closed: (boolean) True if closed (False initially)
 
     gain: (float) the gain realized by the position (>0 for a SHORT if final_price < first_price)
+    result: (float) the return realized by the position =final_price/open_price
     value_history: (list) the historical values of the position (volume*price stored each day)
     portfolio: (Portfolio) the portfolio where it is registered and where the cash will be send when closed
     """
@@ -70,6 +71,7 @@ class Position:
         self.closed = False
 
         self.gain = None
+        self.result = None
         self.valueHistory = []
         self.portfolio = portfolio
 
@@ -83,14 +85,15 @@ class Position:
             current_price = self.openTrade.asset.data[self.portfolio.market.theDay]
             opening_price = self.openTrade.asset.data[self.openTrade.day]
             gain = (current_price - opening_price) * self.openTrade.volume
+            result = current_price/opening_price
             return "<Long: {0}, sill open, asset {1}, volume {2}, " \
-                   "opened the {3}, actual gain: {4}$>".format(self.long, self.openTrade.asset.name,
-                                                               self.openTrade.volume, self.openTrade.day, gain)
+                   "opened the {3}, actual gain: {4}$, actual return: {5:.2f}>".format(self.long, self.openTrade.asset.name,
+                                                               self.openTrade.volume, self.openTrade.day, gain, result)
         else:
             return "<Long: {0}, closed, asset {1}, volume {2}, " \
-                   "opened the {3}, closed the {4}, gain: {5}$>".format(self.long, self.openTrade.asset.name,
+                   "opened the {3}, closed the {4}, gain: {5}$, return: {6:.2f}>".format(self.long, self.openTrade.asset.name,
                                                                         self.openTrade.volume, self.openTrade.day,
-                                                                        self.closeTrade.day, self.gain)
+                                                                        self.closeTrade.day, self.gain, self.result)
 
     def get_returns(self):
         returns = get_returns(self.valueHistory)
@@ -504,6 +507,9 @@ class Market:
         # to update the value of the portfolio.presentAssetDict: sold_volume is >0 for LONG, <0 for SHORT
         sold_volume = open_trade.volume
 
+        # result does not depend of the type of trade
+        result = current_price/opening_price
+
         if position.long:
             # print("Long sold : {0}$ of {1} by {2}".format(position.portfolio.cash, open_trade.asset.name,
             #                                               position.portfolio.name))
@@ -523,6 +529,7 @@ class Market:
         position.closeTrade = Trade(open_trade.asset, open_trade.volume, self.theDay)
         position.closed = True
         position.gain = gain
+        position.result = result
         # update the value of the portfolio: presentAssetDict, openPositionList and closePositionList
         position.portfolio.presentAssetDict[open_trade.asset] -= sold_volume
         position.portfolio.closePositionList.append(position)
