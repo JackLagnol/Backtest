@@ -351,7 +351,7 @@ def test_the_mobile_expert(number_of_line, number_of_column, first_day, last_day
             if j > i:
                 JMMobile = JMMobileExpert(theBacktest.market, "MobileExpert", longMedian=j + 1, shortMedian=i + 1)
                 theBacktest.simule(first_day=first_day, last_day=last_day, string_mode=False)
-                theBacktest.reset()
+                theBacktest.soft_reset()
                 matrix_of_results[i, j] = JMMobile.results_description()[4]
             else:
                 matrix_of_results[i, j] = 0.5
@@ -750,7 +750,7 @@ def test_and_write_several_experts(list_of_medians, file_name,
                 remaining_time = (clock()-beginning_time)*(len(list_of_medians)-j)/j
                 print("{:.1f}% done, still {:.1f}s for".format(100*j/len(list_of_medians), remaining_time),
                       the_expert.asset.name)
-        theBacktest.reset()
+        theBacktest.soft_reset()
     if print_time:
         print("End of {} in {:.1f}s with the prediction type '{}'".format(asset.name, clock() - beginning_time,
                                                                           prediction_term_type))
@@ -759,6 +759,9 @@ def do_a_full_expert_simulation(assetDirectory, nameOfTheSimulation, numberOfSte
 
     print("******************** Beggining of the 'do_a_full_expert_simulation' ********************")
 
+    # the max day needs to be reinitialised
+    theBacktest.hard_reset()
+
     nameList = []  # 'human' name of the assets
     fileList = []  # path file of the assets
     realFileNameNoExtension = []  # path file of the results
@@ -766,7 +769,7 @@ def do_a_full_expert_simulation(assetDirectory, nameOfTheSimulation, numberOfSte
     rawFileList = listdir(assetDirectory)
 
     # debug mode
-    # rawFileList = [rawFileList[3]]
+    # rawFileList = [rawFileList[0]]
     #
 
     for name in rawFileList:
@@ -889,13 +892,16 @@ def test_and_write_several_MAstrategies(list_of_medians, file_name, print_time=T
                 remaining_time = (clock()-beginning_time)*(len(list_of_medians)-j)/j
                 print("{:.1f}% done, still {:.1f}s for".format(100*j/len(list_of_medians), remaining_time),
                       the_strategy.asset.name)
-        theBacktest.reset()
+        theBacktest.soft_reset()
     if print_time:
         print("End of {} in {:.1f}s by the MAStrategy".format(the_strategy.asset.name, clock() - beginning_time))
 
 def do_a_full_strategy_simulation(assetDirectory, nameOfTheSimulation, numberOfStep, typeOfPred, short_simulation=False):
 
     print("******************** Beggining of the 'do_a_full_strategy_simulation' ********************")
+
+    # the max day needs to be reinitialised
+    theBacktest.hard_reset()
 
     nameList = []  # 'human' name of the assets
     fileList = []  # path file of the assets
@@ -904,8 +910,9 @@ def do_a_full_strategy_simulation(assetDirectory, nameOfTheSimulation, numberOfS
     rawFileList = listdir(assetDirectory)
 
     # debug mode
-    # rawFileList = [rawFileList[3]]
+    # rawFileList = [rawFileList[0]]
     #
+
 
     for name in rawFileList:
         temp_name = name.split('-')
@@ -1001,24 +1008,26 @@ if __name__ == "__main__":
     #
     # do_a_full_expert_simulation(assetDirectory, nameOfTheSimulation, numberOfStep, typeOfPred, prediction_term_type):
 
-    do_a_full_expert_simulation("Data/MAdata00/", "S5_down_long_00", 4, "DOWN", "long")
-    do_a_full_expert_simulation("Data/MAdata00/", "S5_up_long_00", 4, "UP", "long")
-    do_a_full_expert_simulation("Data/MAdata00/", "S5_down_short_00", 4, "DOWN", "short")
-    do_a_full_expert_simulation("Data/MAdata00/", "S5_up_short_00", 4, "UP", "short")
-    do_a_full_expert_simulation("Data/MAdata00/", "S5_down_short_00", 4, "DOWN", "median")
-    do_a_full_expert_simulation("Data/MAdata00/", "S5_up_short_00", 4, "UP", "median")
-    do_a_full_strategy_simulation("Data/MAdata00/", "S5_up_fullstrat_00", 4, "UP")
-    do_a_full_strategy_simulation("Data/MAdata00/", "S5_down_fullstrat_00", 4, "DOWN")
-
+    # do_a_full_expert_simulation("Data/MAdata00/", "S5_down_long_00", 4, "DOWN", "long")
+    # do_a_full_expert_simulation("Data/MAdata00/", "S5_up_long_00", 4, "UP", "long")
+    # do_a_full_expert_simulation("Data/MAdata00/", "S5_down_short_00", 4, "DOWN", "short")
+    # do_a_full_expert_simulation("Data/MAdata00/", "S5_up_short_00", 4, "UP", "short")
+    # do_a_full_expert_simulation("Data/MAdata00/", "S5_down_median_00", 4, "DOWN", "median")
+    # do_a_full_expert_simulation("Data/MAdata00/", "S5_up_median_00", 4, "UP", "median")
     #
+    # do_a_full_strategy_simulation("Data/MAdata00/", "S5_up_fullstrat_00", 4, "UP")
+    # do_a_full_strategy_simulation("Data/MAdata00/", "S5_down_fullstrat_00", 4, "DOWN")
+
+
+    do_a_full_strategy_simulation("Data/MAdata95/", "S5_up_fullstrat_95", 4, "UP")
+    do_a_full_strategy_simulation("Data/MAdata95/", "S5_down_fullstrat_95", 4, "DOWN")
+
     do_a_full_expert_simulation("Data/MAdata95/", "S5_down_long_95", 4, "DOWN", "long")
     do_a_full_expert_simulation("Data/MAdata95/", "S5_up_long_95", 4, "UP", "long")
     do_a_full_expert_simulation("Data/MAdata95/", "S5_down_short_95", 4, "DOWN", "short")
     do_a_full_expert_simulation("Data/MAdata95/", "S5_up_short_95", 4, "UP", "short")
-    do_a_full_expert_simulation("Data/MAdata95/", "S5_down_short_95", 4, "DOWN", "median")
-    do_a_full_expert_simulation("Data/MAdata95/", "S5_up_short_95", 4, "UP", "median")
-    do_a_full_strategy_simulation("Data/MAdata95/", "S5_up_fullstrat_95", 4, "UP")
-    do_a_full_strategy_simulation("Data/MAdata95/", "S5_down_fullstrat_95", 4, "DOWN")
+    do_a_full_expert_simulation("Data/MAdata95/", "S5_down_median_95", 4, "DOWN", "median")
+    do_a_full_expert_simulation("Data/MAdata95/", "S5_up_median_95", 4, "UP", "median")
 
 
     # do_a_full_strategy_simulation("Data/MAdata00/", "S4_down_short_00", 4, "DOWN", short_simulation=True)
@@ -1087,7 +1096,7 @@ if __name__ == "__main__":
     # MobileExpert.plot_medians()
     # JMMAStrategy.plot_medians()
 
-    # theBacktest.reset()
+    # theBacktest.soft_reset()
 
     # ---------------------------------------------------------- #
     # ----------------- END: MANUAL SIMULATION ----------------- #

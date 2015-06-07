@@ -61,7 +61,6 @@ class Backtest:
             # a line is printed if both expertList and portfolioList are not empty
             if len(self.market.portfolioList)*len(self.market.expertList) > 0:
                 print("---------------------------------------------------------------------")
-
             for expert in self.market.expertList:
                 print(expert.results_description(string_mode=True))
             print("---------------------------------------------------------------------")
@@ -71,13 +70,18 @@ class Backtest:
             if plot_mode:
                 plt.show(block=True)
 
-    def reset(self):
-        """Reset the market for an other new simulation, keep the assets loaded """
+    def soft_reset(self):
+        """Reset the market for an other new simulation, keep the assets loaded
+        WARNING : the max day is still the lowest ! """
         self.market.strategyList.clear()
         self.market.portfolioList.clear()
         self.market.predictionList.clear()
         self.market.expertList.clear()
         self.market._theDay = 0
+
+    def hard_reset(self):
+        """Reset the market for an other new simulation, delete the assset and reset max day """
+        self.market = Market()
 
 
 class DataReader:
