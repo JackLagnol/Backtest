@@ -568,7 +568,8 @@ def write_a_prediction_list_on_file(file_name, prediction_list, format_type=0, o
 def test_and_write_several_experts(list_of_medians, file_name,
                                    print_time=True, overwrite=True, format_type=0, asset=None, randomReference=True,
                                    typeOfPred="UP", random_file_name="default_random_file.csv",
-                                   numberOfRandPredictions=200, first_day=None, last_day=None):
+                                   numberOfRandPredictions=200, first_day=None, last_day=None,
+                                   prediction_term_type="median"):
     """  """
     if overwrite:
         data_writer(file_name, [])
@@ -579,10 +580,19 @@ def test_and_write_several_experts(list_of_medians, file_name,
     i, j = 0, 0
 
     for couple in list_of_medians:
-        temp_prediction_term = math.floor((couple[0] + couple[1])/2)
+        if prediction_term_type == "short":
+            temp_prediction_term = couple[1]
+        elif prediction_term_type == "long":
+            temp_prediction_term = couple[0]
+        elif prediction_term_type == "median":
+            temp_prediction_term = math.floor((couple[0] + couple[1])/2)
+        else:
+            print("!!! WRONG predictionTerm IN test_and_write_several_experts, set to 1 !!!")
+            temp_prediction_term = 1
 
         the_expert = JMMobileExpert(theBacktest.market, "MobileExpert",
-                                    longMedian=couple[0], shortMedian=couple[1], asset=asset, typeOfPred=typeOfPred)
+                                    longMedian=couple[0], shortMedian=couple[1], asset=asset, typeOfPred=typeOfPred,
+                                    predictionTerm=temp_prediction_term)
         if randomReference:
             the_rand_expert = JMRandomExpert(theBacktest.market, "RandomExpert",  asset=asset,
                                              numberOfPredictions=numberOfRandPredictions, predictionTerm=temp_prediction_term,
@@ -608,7 +618,8 @@ def test_and_write_several_experts(list_of_medians, file_name,
                       the_expert.asset.name)
         theBacktest.reset()
     if print_time:
-        print("End of {} in {:.1f}s".format(asset.name, clock() - beginning_time))
+        print("End of {} in {:.1f}s with the prediction type '{}'".format(asset.name, clock() - beginning_time,
+                                                                        prediction_term_type))
 
 if __name__ == "__main__":
     # An instance of Backtest is created
@@ -627,9 +638,11 @@ if __name__ == "__main__":
     # msft = theBacktest.add_asset_from_csv("Data/MAdata/msft-30.12.94.csv", "yahoo", ",", "MSFT")
 
     # import dans le market de tous les cours disponibles dans le dossier donne
-    assetDirectory = "Data/MAdata95/"
-    nameOfTheSimulation = "S1_95"
+    assetDirectory = "Data/MAdata00/"  # example: "Data/MAdata00/"
+    nameOfTheSimulation = "S3_down_short_00"
     numberOfStep = 4
+    typeOfPred = "DOWN"  # can be UP DOWN UPDOWN
+    prediction_term_type = "short"  # can be short long median
 
     nameList = []  # 'human' name of the assets
     fileList = []  # path file of the assets
@@ -664,12 +677,11 @@ if __name__ == "__main__":
     realFileNameNoExtension = [realDirectory + filePrefix + name for name in nameList]
     randomFileNameNoExtension = [randomDirectory + filePrefix + name + randomFileSuffix for name in nameList]
 
-
     list_of_medians = []
     for i in range(20, 75, 4):
         for j in range(10, i-7, 2):
             list_of_medians.append([i, j])
-    print("Number of couples tested:", len(list_of_medians))
+    print(len(list_of_medians))
     for i in range(75, 150, 4):
         for j in range(10, i-10, 2):
             list_of_medians.append([i, j])
@@ -677,7 +689,8 @@ if __name__ == "__main__":
     for i in range(150, 250, 5):
         for j in range(10, i-40, 5):
             list_of_medians.append([i, j])
-    print(len(list_of_medians))
+    print("Number of couples tested:", len(list_of_medians))
+
 
     # print(list_of_medians)
     # plt.plot(*zip(*list_of_medians), marker='x', color='b', ls='')
@@ -702,11 +715,12 @@ if __name__ == "__main__":
                                            print_time=True, overwrite=True,
                                            format_type=3, asset=file[0], randomReference=True,
                                            random_file_name=file[2], numberOfRandPredictions=200,
-                                           first_day=first_day, last_day=last_day)
+                                           first_day=first_day, last_day=last_day,
+                                           typeOfPred=typeOfPred, prediction_term_type=prediction_term_type)
         print("--- Step done in {:.1f}s, still {:.1f}s ---".format(clock()-beginning_time,
                                                                   (clock()-all_beginning_time)/(i+1)*(numberOfStep-i-1)))
 
-    first_line = "this simulation was made with the following medians in {}s :".format(clock() - all_beginning_time)
+    first_line = "this simulation was made with the following medians in {:.1f}s :".format(clock() - all_beginning_time)
     data_writer(resultsDirectory + nameOfTheSimulation + "/" + filePrefix + "readme.txt", list_of_medians, first_line=first_line)
 
 
